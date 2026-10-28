@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delivery Robot Study</title>
+<link rel="icon" href="static/favicon.ico">
+<link rel="stylesheet" href="demo.css">
+<style>
+  .steps-list { margin: 0; padding-left: 22px; } .steps-list li { margin: 5px 0; }
+  .steps-list li b { color: var(--navy); }
+  .tag { display: inline-block; font-size: 12.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-left: 6px; }
+  .tag.q { background: #e8eefc; color: var(--blue2); } .tag.t { background: #fff1e4; color: #b4541b; }
+</style>
+</head>
+<body>
+<header class="hub-head"><div class="hub-inner">
+  <div class="brand">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><line x1="24" y1="4" x2="24" y2="11" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="4" r="3" fill="#fff"/><rect x="7" y="11" width="34" height="25" rx="8" fill="#fff"/><circle cx="17" cy="23" r="4" fill="#14213d"/><circle cx="31" cy="23" r="4" fill="#14213d"/><rect x="16" y="30" width="16" height="2.5" rx="1.2" fill="#14213d"/><rect x="13" y="38" width="22" height="7" rx="3" fill="#fff"/></svg>
+    <div><div class="t1">Delivery Robot Study · experiment demo</div>
+    <div class="t2">Trust in delivery robots: reliability × autonomy (PsiTurk experiment, running offline)</div></div>
+  </div>
+  <nav class="tabs" id="tabs"><a href="#run">Run the experiment</a><a href="#data">Recorded data</a></nav>
+</div></header>
+
+<main>
+<section id="run" class="panel">
+  <h1>Run the experiment as a participant</h1>
+  <p class="lead">This is the real PsiTurk experiment: the same pages, videos and voice. Only PsiTurk's server is replaced, so
+    the answers are kept in this browser. Turn the sound on.</p>
+  <div class="card">
+    <h3>Start</h3>
+    <button class="btn big" id="start-auto">Start as a new participant</button>
+    <p class="small">The condition is assigned the way PsiTurk does it: each new participant goes to the least-filled of the 4 conditions.</p>
+    <p class="small" style="margin-top:14px">Or choose a condition:</p>
+    <div class="cells">
+      <button class="cellbtn" data-c="0" data-k="0"><b>Reliable · low autonomy first</b><span>condition 0 · counterbalance 0</span></button>
+      <button class="cellbtn" data-c="0" data-k="1"><b>Reliable · mid autonomy first</b><span>condition 0 · counterbalance 1</span></button>
+      <button class="cellbtn" data-c="1" data-k="0"><b>Unreliable · low autonomy first</b><span>condition 1 · counterbalance 0</span></button>
+      <button class="cellbtn" data-c="1" data-k="1"><b>Unreliable · mid autonomy first</b><span>condition 1 · counterbalance 1</span></button>
+    </div>
+    <label class="check"><input type="checkbox" id="skip"> Skip to Robot 1 (quick demo: no consent, questions or training)</label>
+    <p class="small">During the experiment, the bar at the bottom right sets the video speed (1–8×) and links back here.</p>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>What the participant does</h3>
+      <ol class="steps-list">
+        <li><b>Consent</b>: says that only non-identifiable data is collected</li>
+        <li><b>About you</b>: age (18–80), gender, used PsiTurk before (Y/N), worked with robots before (Y/N) <span class="tag q">questiondata</span></li>
+        <li><b>Attitudes toward robots</b> (NARS, with an attention check) <span class="tag q">questiondata</span></li>
+        <li><b>Sound check</b>: the robots speak in the videos</li>
+        <li><b>Training video</b> and a <b>practice delivery</b></li>
+        <li><b>Robot 1</b>: instructions for its condition with a screenshot, then 3 deliveries <span class="tag t">trialdata</span></li>
+        <li>Questionnaire about Robot 1 (MDMT, reliance, manipulation checks) <span class="tag q">questiondata</span></li>
+        <li><b>Robot 2</b>: the other autonomy level, 3 deliveries <span class="tag t">trialdata</span>, questionnaire <span class="tag q">questiondata</span></li>
+        <li><b>Open-ended question</b>, then the <b>debriefing</b> <span class="tag q">questiondata</span></li>
+      </ol>
+      <p class="small">A countdown timer in the header is shown on every page.</p>
+    </div>
+    <div class="card">
+      <h3>The four conditions</h3>
+      <p><b>Reliability</b> (between participants): the reliable robots are always right; the unreliable robots are wrong on deliveries 1 and 3.</p>
+      <p><b>Autonomy</b> (within participants, order counterbalanced):</p>
+      <ul class="steps-list">
+        <li><b>Low</b>: the robot asks "I suggest going to Room X. Confirm?" and the participant confirms or chooses the other room.</li>
+        <li><b>Mid</b>: the robot decides on its own and reports back. The participant answers "Did the robot reach the correct room?"</li>
+      </ul>
+      <p class="small">After every delivery: "How much do you trust the robot right now?" (1–7).</p>
+    </div>
+  </div>
+  <div class="actions"><button class="btn alt" id="reset">Delete all demo sessions</button></div>
+</section>
+
+<section id="data" class="panel">
+  <h1>Recorded data</h1>
+  <p class="lead">As in PsiTurk: the experiment goes to <b>trialdata</b>, and demographics plus all questions before and after the
+    experiment go to <b>questiondata</b>. Both files use the same PsiTurk ID.</p>
+  <div class="card">
+    <div class="sessbar"><select id="sess"></select><button class="btn" id="dl-csv">Download trialdata.csv</button>
+      <button class="btn alt" id="dl-q">Download questiondata.csv</button></div>
+    <div id="sessinfo"></div>
+    <h3>trialdata (experiment)</h3>
+    <div id="records"></div>
+    <h3 style="margin-top:22px">questiondata (questions before and after the experiment)</h3>
+    <div id="questions"></div>
+  </div>
+  <div class="actions"><a class="btn" href="#run">Run another participant</a></div>
+</section>
+</main>
+
+<script src="mock_psiturk.js"></script>
+<script src="data_view.js"></script>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var drawData = DemoData.mount({select: 'sess', info: 'sessinfo', trials: 'records', questions: 'questions',
+                                 dlTrial: 'dl-csv', dlQuestion: 'dl-q'});
+  function showTab() {
+    var id = (location.hash || '#run').slice(1);
+    if (!document.getElementById(id)) id = 'run';
+    document.querySelectorAll('section.panel').forEach(function (s) { s.classList.toggle('on', s.id === id); });
+    document.querySelectorAll('#tabs a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+    if (id === 'data') drawData();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', showTab);
+  function start(cond, counter) {
+    var q = new URLSearchParams({worker: 'demo' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)});
+    if (cond !== undefined) { q.set('cond', cond); q.set('counter', counter); }
+    var skip = $('#skip').checked;
+    if (skip) q.set('start', 'block1');
+    location.href = (skip ? 'experiment.html?' : 'consent.html?') + q.toString();
+  }
+  $('#start-auto').onclick = function () { start(); };
+  document.querySelectorAll('.cellbtn').forEach(function (b) { b.onclick = function () { start(b.dataset.c, b.dataset.k); }; });
+  $('#reset').onclick = function () { if (confirm('Delete all demo sessions in this browser?')) { DemoStore.clear(); drawData(); } };
+  showTab();
+})();
+</script>
+</body>
+</html>
