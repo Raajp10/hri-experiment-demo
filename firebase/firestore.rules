@@ -1,0 +1,42 @@
+rules_version = '2';
+// Study database rules. Participants can create and update only their own session and can never read,
+// change a finished session or delete anything. Only the researcher (signed in with a verified email) reads.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isResearcher() {
+      return request.auth != null && request.auth.token.email == 'raajp98250@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    function cells(d) {
+      return d.keys().hasOnly(['c0', 'c1', 'c2', 'c3']) && d.c0 is int && d.c1 is int && d.c2 is int && d.c3 is int;
+    }
+    function plusOne(k) {
+      return request.resource.data.get(k, 0) == resource.data.get(k, 0) + 1;
+    }
+
+    // condition counts for balanced assignment (PsiTurk's least-filled rotation)
+    match /meta/counts {
+      allow read: if true;
+      allow create: if cells(request.resource.data)
+        && request.resource.data.c0 + request.resource.data.c1 + request.resource.data.c2 + request.resource.data.c3 == 1;
+      allow update: if cells(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().size() == 1
+        && (plusOne('c0') || plusOne('c1') || plusOne('c2') || plusOne('c3'));
+    }
+
+    match /sessions/{id} {
+      function valid() {
+        let d = request.resource.data;
+        return d.uniqueid == id && d.condition is int && d.condition >= 0 && d.condition <= 3
+          && d.status in ['started', 'completed', 'withdrawn'] && d.data is list && d.data.size() <= 300
+          && d.questiondata is map;
+      }
+      allow read: if isResearcher();
+      allow create: if valid() && request.resource.data.status == 'started';
+      allow update: if valid() && resource.data.status == 'started'
+        && request.resource.data.condition == resource.data.condition
+        && request.resource.data.counterbalance == resource.data.counterbalance;
+      allow delete: if false;
+    }
+  }
+}

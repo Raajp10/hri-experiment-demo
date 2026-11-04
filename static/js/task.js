@@ -54,8 +54,51 @@ psiTurk.recordUnstructuredData('autonomy_order', ORDER.join('-'));
 var $c = function () { return document.getElementById('container-exp'); };
 
 function show(html) {
+  if (leaving) return;
   $c().innerHTML = html;
   window.scrollTo(0, 0);
+}
+
+// ------------------------------------------------------------------ leave the study (any page)
+// "Leave study" in the header. It asks once on the page (no browser dialog), then marks the session withdrawn
+// (trialdata phase 'withdrawn', questiondata 'withdrawn'); withdrawn sessions are not analysed.
+var leaving = false;
+function leaveButton() {
+  var head = document.querySelector('.app-head .inner');
+  if (!head || document.getElementById('leave')) return;
+  var b = document.createElement('button');
+  b.id = 'leave';
+  b.type = 'button';
+  b.className = 'leave';
+  b.textContent = 'Leave study';
+  b.onclick = askLeave;
+  head.appendChild(b);
+}
+function askLeave() {
+  if (leaving || document.getElementById('leave-box')) return;
+  var box = document.createElement('div');
+  box.id = 'leave-box';
+  box.className = 'leave-box';
+  box.innerHTML = '<div class="leave-card" role="dialog" aria-modal="true" aria-labelledby="leave-t">' +
+    '<h2 id="leave-t">Leave the study?</h2><p>You can stop at any time. If you leave now, your answers will not be used.</p>' +
+    '<div class="actions"><button class="btn alt" id="leave-no">Keep going</button>' +
+    '<button class="btn danger" id="leave-yes">Yes, leave</button></div></div>';
+  document.body.appendChild(box);
+  document.getElementById('leave-no').onclick = function () { box.remove(); };
+  document.getElementById('leave-yes').onclick = leaveStudy;
+}
+function leaveStudy() {
+  stopCountdown();
+  document.querySelectorAll('video, audio').forEach(function (m) { m.pause(); });
+  record({phase: 'withdrawn'});
+  psiTurk.recordUnstructuredData('withdrawn', true);
+  leaving = true;
+  ['leave-box', 'leave', 'timer'].forEach(function (id) { var el = document.getElementById(id); if (el) el.remove(); });
+  $c().innerHTML = '<h2>You have left the study</h2><p class="lead">Thank you for your time. Your answers will not be used. ' +
+    'You can close this window now.</p>';
+  var pb = document.getElementById('progress-bar');
+  if (pb) pb.style.width = '0';
+  if (psiTurk.withdraw) psiTurk.withdraw(); else psiTurk.saveData();
 }
 
 // Progress in the header bar: step label + bar (0-1).
@@ -230,6 +273,10 @@ function playClip(name) {
     // Block seeking via keyboard / context menu.
     v.addEventListener('seeking', function () { if (!v.ended && v.currentTime > 0.1) v.currentTime = v._last || 0; });
     v.addEventListener('timeupdate', function () { if (!v.seeking) v._last = v.currentTime; updateCues(); });
+    // Full-quality clips can take a moment to load on slow connections.
+    var status = document.getElementById('clip-status');
+    v.addEventListener('waiting', function () { if (!status.querySelector('button')) status.textContent = 'Loading video…'; });
+    v.addEventListener('playing', function () { if (!status.querySelector('button')) status.textContent = ''; });
     var p = v.play();
     if (p && p.catch) {
       p.catch(function () {
@@ -349,7 +396,7 @@ async function demographics() {
   setStep(0, 0.33);
   var yn = [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}];
   Object.assign(data, await formPage('<div class="eyebrow">About you · 2 of 3</div><h2>Have you done this before?</h2>' +
-    '<div class="q"><p>Have you done a PsiTurk study before?</p>' + radioRow('psiturk_before', yn) + '</div>' +
+    '<div class="q"><p>Have you taken part in a PsiTurk study before?</p>' + radioRow('psiturk_before', yn) + '</div>' +
     '<div class="q"><p>Have you worked with robots before?</p>' + radioRow('robots_before', yn) + '</div>',
     ['psiturk_before', 'robots_before'], 60, 'demographics_2'));
   setStep(0, 0.66);
@@ -358,8 +405,8 @@ async function demographics() {
     radioRow('robot_experience', [{value: 1, label: 'Never'}, {value: 2, label: 'A little'},
       {value: 3, label: 'Some'}, {value: 4, label: 'A lot'}, {value: 5, label: 'Expert'}]) + '</div>' +
     '<div class="q"><p>How often do you play video games?</p>' +
-    radioRow('game_frequency', [{value: 1, label: 'Never'}, {value: 2, label: 'Less than once a month'},
-      {value: 3, label: 'About once a month'}, {value: 4, label: 'About once a week'}, {value: 5, label: 'Every day'}]) + '</div>',
+    radioRow('game_frequency', [{value: 1, label: 'Never'}, {value: 2, label: 'Less than monthly'},
+      {value: 3, label: 'Monthly'}, {value: 4, label: 'Weekly'}, {value: 5, label: 'Daily'}]) + '</div>',
     ['robot_experience', 'game_frequency'], 60, 'demographics_3'));
   data.demographics_rt_ms = Math.round(performance.now() - t0);
   saveQuestions(data);
@@ -591,9 +638,8 @@ async function runBlock(block) {
 async function openEnded() {
   setStep(STEP_FINISH);
   var question = NBLOCKS === 2
-    ? 'Why did you trust, or not trust, ' + robotOf(1).name + ' and ' + robotOf(2).name + '? ' +
-      'Did it matter that one robot asked you first and the other one chose by itself?'
-    : 'Why did you trust, or not trust, ' + robotOf(1).name + '?';
+    ? 'What made you trust or not trust the two robots? Did it matter that one robot asked you and the other decided by itself?'
+    : 'What made you trust or not trust ' + robotOf(1).name + '?';
   show('<div class="eyebrow">Almost done</div><h2>In your own words</h2>' +
     '<div class="q" data-item="open_ended"><p><b>' + question + '</b></p>' +
     '<textarea name="open_ended" rows="5" placeholder="Please write at least one sentence."></textarea></div>' + NEXT);
@@ -622,6 +668,8 @@ async function debrief() {
   countdown(120, 'debrief');
   await clicked('#finish');
   stopCountdown();
+  var lb = document.getElementById('leave');
+  if (lb) lb.remove();
   var comments = document.querySelector('[name="comments"]').value;
   var allPass = Object.keys(attention).every(function (k) { return attention[k]; });
   saveQuestions({comments: comments, attention_nars: attention.nars, attention_block1: attention.block1,
@@ -643,6 +691,7 @@ async function debrief() {
 }
 
 async function experiment() {
+  leaveButton();
   record({phase: 'start', user_agent: navigator.userAgent});
   if (START === 'block1' || (START === 'block2' && NBLOCKS === 2)) {
     await runBlock(START === 'block1' ? 1 : 2);

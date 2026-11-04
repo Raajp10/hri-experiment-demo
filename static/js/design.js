@@ -4,4 +4,4 @@
  * 'between' = each participant meets 1 robot (Nova) at 1 autonomy level (4 groups).
  *             psiturk/config.txt: num_conds = 4, num_counters = 1.
  * Change both together, then restart the PsiTurk server. */
-var STUDY_DESIGN = 'within';
+var STUDY_DESIGN = 'between';

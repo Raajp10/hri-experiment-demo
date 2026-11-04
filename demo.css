@@ -99,3 +99,14 @@ footer { text-align: center; color: var(--muted); font-size: 13px; padding: 10px
 @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } .cells { grid-template-columns: 1fr; } .cellgrid .cg { grid-template-columns: 120px 1fr 32px; } }
 table.rec.qd td:first-child { width: 38%; }
 table.rec tr.qgroup td { background: #eef3ff; font-weight: 700; color: var(--navy); padding-top: 10px; }
+
+/* ---------------------------------------------------------------- researcher data page (data.html) */
+[hidden] { display: none !important; }
+.card.narrow { max-width: 520px; }
+.stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
+.stat { background: #fff; border-radius: 12px; padding: 10px 16px; box-shadow: 0 1px 3px rgba(20,33,61,.08); font-size: 14.5px; }
+.stat b { font-size: 20px; color: var(--navy); margin-right: 4px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; font-size: 14.5px; }
+.small { font-size: 13.5px; }
+tr.pick { cursor: pointer; }
+tr.pick:hover td { background: #f3f6fc; }

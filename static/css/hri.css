@@ -245,3 +245,50 @@ h2 { font-size: 24px; margin-bottom: 8px; }
 .consent-short p { font-size: 18px; max-width: 760px; }
 textarea[name="comments"] { width: 100%; font: inherit; padding: 8px; border-radius: 10px; border: 1.5px solid #c7cede; }
 .bubble { min-width: 190px; }
+
+/* ---------------------------------------------------------------- leave the study (any page) */
+.app-head .leave { font: inherit; font-size: 13.5px; font-weight: 600; color: #dfe5f2; background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, .35); border-radius: 999px; padding: 3px 12px; cursor: pointer; white-space: nowrap; }
+.app-head .leave:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.leave-box { position: fixed; inset: 0; z-index: 100; background: rgba(13, 22, 43, .55); display: flex;
+  align-items: center; justify-content: center; padding: 16px; animation: fadeUp .15s ease; }
+.leave-card { background: #fff; border-radius: 16px; padding: 26px 30px 18px; max-width: 460px;
+  box-shadow: 0 20px 50px rgba(13, 22, 43, .35); }
+.leave-card p { font-size: 17px; }
+.btn.danger { background: var(--red); }
+.btn.danger:hover { background: #a01f25; }
+
+/* ---------------------------------------------------------------- consent (first page) */
+#consent.consent { display: flex; gap: 34px; align-items: flex-start; justify-content: space-between; margin: 0; }
+.consent-main { flex: 1 1 auto; max-width: 680px; }
+.consent .lead { font-size: 19px; }
+.consent-pic { flex: 0 0 210px; width: 210px; height: 210px; object-fit: cover; border-radius: 50%; margin-top: 10px;
+  box-shadow: 0 0 0 6px var(--blue-soft), 0 10px 26px rgba(20, 33, 61, .18); }
+.facts { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 8px; }
+.facts li { display: flex; gap: 12px; align-items: center; padding: 9px 14px; border-radius: 12px; background: #f6f8fc; font-size: 17px; }
+.facts .ic { flex: 0 0 30px; height: 30px; border-radius: 50%; background: var(--blue-soft); color: var(--blue);
+  display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; }
+.consent .contact { font-size: 15.5px; color: var(--muted); margin: 10px 0 6px; }
+.consent .agree-note { font-size: 16px; font-weight: 650; margin: 0; }
+@media (max-width: 900px) { .consent-pic { display: none; } }
+
+/* ---------------------------------------------------------------- short laptop screens (e.g. 1366 x 768 with the
+   browser bars, about 620 px of page): tighter spacing so every page still fits without scrolling */
+@media (max-height: 700px) {
+  .app-head .inner { padding: 7px 24px; }
+  #container-exp { margin: 8px auto; padding: 14px 28px; }
+  h2 { font-size: 22px; margin-bottom: 6px; }
+  .lead, .consent .lead { font-size: 16.5px; margin-bottom: 8px; }
+  .lead.tight { margin-bottom: 6px; }
+  .actions { margin-top: 10px; }
+  .btn.big { padding: 10px 26px; }
+  .err { margin-top: 4px; }
+  table.matrix { margin: 2px 0; }
+  table.matrix thead th { padding: 6px 4px; }
+  table.matrix td.item { padding: 4px 12px; }
+  table.matrix label { min-height: 34px; }
+  .facts { margin: 10px 0; gap: 6px; }
+  .facts li { padding: 6px 12px; font-size: 16px; }
+  .consent-pic { flex-basis: 170px; width: 170px; height: 170px; }
+  .q { padding: 10px 14px; margin-bottom: 10px; }
+}

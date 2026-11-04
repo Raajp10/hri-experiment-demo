@@ -3,44 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recorded Data</title>
+<meta name="robots" content="noindex">
+<title>Study Data</title>
 <link rel="icon" href="static/favicon.ico">
 <link rel="stylesheet" href="demo.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase_config.js"></script>
+<script src="data_view.js"></script>
 </head>
 <body>
-<!-- Researcher page of the participant demo kit (not linked for participants). Read-only: nothing can be deleted. -->
+<!-- Researcher page. Only RESEARCHER_EMAIL can sign in (email link) and the database rules refuse anyone else. -->
 <header class="hub-head"><div class="hub-inner">
   <div class="brand">
     <img src="static/images/robot_example.jpg" alt="" style="width:38px;height:38px;border-radius:50%;object-fit:cover">
-    <div><div class="t1">Delivery Robot Study · recorded data</div>
-    <div class="t2">Researcher view of the demo sessions run in this browser</div></div>
+    <div><div class="t1">Delivery Robot Study · data</div>
+    <div class="t2">Researcher only</div></div>
   </div>
-  <nav class="tabs"><a class="on" href="#data">Recorded data</a></nav>
+  <nav class="tabs"><a class="on" href="#data">Data</a><a href="#" id="signout" hidden>Sign out</a></nav>
 </div></header>
 <main>
-<section id="data" class="panel on">
-  <p class="lead">As in PsiTurk, the experiment goes to <b>trialdata</b>. Demographics and all questions before and after the
-    experiment go to <b>questiondata</b>. Both files use the same PsiTurk ID.</p>
+<section id="signin" class="panel on" hidden>
+  <div class="card narrow">
+    <h3>Researcher sign-in</h3>
+    <p>This page is only for the researcher. A sign-in link will be emailed to the researcher's address.</p>
+    <button class="btn" id="send-link">Email me a sign-in link</button>
+    <p class="muted" id="signin-msg"></p>
+  </div>
+</section>
+<section id="data" class="panel on" hidden>
+  <div class="stats" id="stats"></div>
   <div class="card">
-    <div class="sessbar"><select id="sess"></select><button class="btn" id="dl-csv">Download trialdata.csv</button>
-      <button class="btn alt" id="dl-q">Download questiondata.csv</button></div>
+    <div class="sessbar">
+      <button class="btn" id="dl-csv">Download trialdata.csv</button>
+      <button class="btn alt" id="dl-q">Download questiondata.csv</button>
+      <button class="btn alt" id="dl-json">Download full backup (JSON)</button>
+      <label class="chk"><input type="checkbox" id="with-tests"> include test runs</label>
+    </div>
+    <p class="muted small">PsiTurk format (no header row), the same files <code>psiturk download_datafiles</code> gives.
+      Load them with <code>analysis/jasp_export.py --trialdata trialdata.csv</code> (questiondata.csv in the same folder).
+      Unfinished and withdrawn sessions are in the files too; the analysis excludes them.</p>
+  </div>
+  <div class="card">
+    <h3>Sessions</h3>
+    <div id="sesslist"></div>
+  </div>
+  <div class="card" id="detail" hidden>
     <div id="sessinfo"></div>
     <h3>trialdata (experiment)</h3>
     <div id="records"></div>
     <h3 style="margin-top:22px">questiondata (questions before and after the experiment)</h3>
     <div id="questions"></div>
   </div>
-  <div class="card tip"><b>Where the real data goes.</b> This demo runs without a server, so it keeps each session in the
-    browser that ran it. In the study, PsiTurk's server saves every page to its database (<code>participants.db</code>), and
-    <code>scripts/backup_data.py</code> copies the database and both CSV files to a dated backup. Participants have no way to
-    delete data.</div>
 </section>
+<p class="err" id="err"></p>
 </main>
-<script src="mock_psiturk.js"></script>
-<script src="data_view.js"></script>
 <script>
-  DemoData.mount({select: 'sess', info: 'sessinfo', trials: 'records', questions: 'questions',
-                  dlTrial: 'dl-csv', dlQuestion: 'dl-q'})();
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  if (!FIREBASE_CONFIG.projectId) { $('err').textContent = 'The study database is not connected yet (firebase_config.js).'; return; }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  var auth = firebase.auth(), db = firebase.firestore();
+  var all = [];
+
+  function shown() { return all.filter(function (s) { return $('with-tests').checked || !DemoData.isTest(s); }); }
+
+  function draw() {
+    var list = shown();
+    var by = {}, done = 0, left = 0;
+    list.forEach(function (s) {
+      if (s.status === 'completed') { done++; var k = DemoData.cellName(s); by[k] = (by[k] || 0) + 1; }
+      if (s.status === 'withdrawn') left++;
+    });
+    $('stats').innerHTML = '<div class="stat"><b>' + done + '</b> completed</div>' +
+      '<div class="stat"><b>' + (list.length - done - left) + '</b> unfinished</div>' +
+      '<div class="stat"><b>' + left + '</b> left the study</div>' +
+      Object.keys(by).sort().map(function (k) { return '<div class="stat"><b>' + by[k] + '</b> ' + k + '</div>'; }).join('');
+    $('sesslist').innerHTML = list.length ? '<table class="rec"><tr><th>Started</th><th>PsiTurk ID</th><th>Condition</th><th>Status</th><th>Records</th></tr>' +
+      list.map(function (s, i) {
+        return '<tr class="pick" data-i="' + i + '"><td>' + DemoData.esc((s.begin || '').slice(0, 16).replace('T', ' ')) + '</td><td><code>' +
+          DemoData.esc(s.uniqueid) + '</code></td><td>' + DemoData.cellName(s) + '</td><td>' + s.status + '</td><td>' + (s.data || []).length + '</td></tr>';
+      }).join('') + '</table>' : '<p class="muted">No sessions yet.</p>';
+    document.querySelectorAll('tr.pick').forEach(function (tr) {
+      tr.onclick = function () {
+        $('detail').hidden = false;
+        DemoData.render(list[+tr.dataset.i], $('sessinfo'), $('records'), $('questions'));
+        $('detail').scrollIntoView({behavior: 'smooth'});
+      };
+    });
+  }
+
+  function loadData() {
+    return db.collection('sessions').get().then(function (snap) {
+      all = snap.docs.map(function (d) { return d.data(); })
+        .sort(function (a, b) { return (b.begin || '') < (a.begin || '') ? -1 : 1; });
+      draw();
+    });
+  }
+
+  $('with-tests').onchange = draw;
+  $('dl-csv').onclick = function () { DemoData.download('trialdata.csv', DemoData.trialdataCSV(shown())); };
+  $('dl-q').onclick = function () { DemoData.download('questiondata.csv', DemoData.questiondataCSV(shown())); };
+  $('dl-json').onclick = function () {
+    DemoData.download('sessions_backup_' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(all, null, 1), 'application/json');
+  };
+  $('signout').onclick = function (e) { e.preventDefault(); auth.signOut(); };
+
+  $('send-link').onclick = function () {
+    var url = location.href.split('#')[0].split('?')[0];
+    auth.sendSignInLinkToEmail(RESEARCHER_EMAIL, {url: url, handleCodeInApp: true}).then(function () {
+      try { localStorage.setItem('hri_signin_email', RESEARCHER_EMAIL); } catch (e) { /* ignore */ }
+      $('signin-msg').textContent = 'Sent. Open the email and click the link (on this computer).';
+    }, function (e) { $('signin-msg').textContent = 'Could not send the link: ' + e.message; });
+  };
+
+  // coming back from the emailed link
+  if (auth.isSignInWithEmailLink(location.href)) {
+    auth.signInWithEmailLink(RESEARCHER_EMAIL, location.href).then(function () {
+      history.replaceState(null, '', location.pathname);
+    }, function (e) { $('err').textContent = 'Sign-in failed: ' + e.message; });
+  }
+
+  auth.onAuthStateChanged(function (user) {
+    var ok = user && user.email === RESEARCHER_EMAIL;
+    $('signin').hidden = !!ok;
+    $('data').hidden = !ok;
+    $('signout').hidden = !user;
+    $('err').textContent = user && !ok ? 'This account cannot see the study data.' : '';
+    if (ok) loadData().catch(function (e) { $('err').textContent = 'Could not load the data: ' + e.message; });
+  });
+})();
 </script>
 </body>
 </html>
