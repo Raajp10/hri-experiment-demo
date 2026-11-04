@@ -1,5 +1,7 @@
 /* Demo-only toolbar on the experiment page: video speed, back to the demo menu, condition shown. */
 (function () {
+  // Participant kit: hidden unless the link has ?tools=1 (for the researcher's own walk-through).
+  if (window.DEMO_PARTICIPANT_KIT && new URLSearchParams(location.search).get('tools') !== '1') return;
   var SPEEDS = [1, 2, 4, 8];
   var speed = 1;
   try { speed = +(sessionStorage.getItem('demo_speed') || 1); } catch (e) { /* ignore */ }
@@ -19,8 +21,9 @@
       '<span class="demo-cell">' + CELL[window.condition + ',' + window.counterbalance] + '</span>' +
       '<span class="demo-sep"></span><span>Video speed</span>' +
       SPEEDS.map(function (s) { return '<button data-s="' + s + '"' + (s === speed ? ' class="on"' : '') + '>' + s + '×</button>'; }).join('') +
-      '<span class="demo-sep"></span><a href="index.html?worker=' + encodeURIComponent(window.uniqueId) + '#data">Data so far</a>' +
-      '<a href="index.html#run">Menu</a>';
+      '<span class="demo-sep"></span><a href="' + (window.DEMO_PARTICIPANT_KIT ? 'data.html' : 'index.html') + '?worker=' +
+      encodeURIComponent(window.uniqueId) + '#data">Data so far</a>' +
+      (window.DEMO_PARTICIPANT_KIT ? '' : '<a href="index.html#run">Menu</a>');
     document.body.appendChild(bar);
     bar.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-s]');

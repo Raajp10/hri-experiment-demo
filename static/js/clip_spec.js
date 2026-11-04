@@ -140,17 +140,6 @@ var CLIP_SPEC = {
    ]
   }
  },
- "practice": {
-  "name": "Pip",
-  "colour": "#8c8c8c",
-  "target": "D",
-  "other": "C",
-  "approach": "practice_pip_low_target-D_suggests-D.mp4",
-  "branch": {
-   "D": "practice_pip_branch_J2_to-D.mp4",
-   "C": "practice_pip_branch_J2_to-C.mp4"
-  }
- },
  "patterns": {
   "reliable": [
    "correct",
@@ -162,6 +151,5 @@ var CLIP_SPEC = {
    "correct",
    "wrong"
   ]
- },
- "training": "training.mp4"
+ }
 };

@@ -83,6 +83,8 @@ table.matrix thead th:first-child { border-top-left-radius: 10px; }
 table.matrix thead th:last-child { border-top-right-radius: 10px; }
 table.matrix td { border-bottom: 1px solid var(--line); padding: 0; text-align: center; }
 table.matrix td.item { text-align: left; padding: 10px 12px; color: var(--ink); }
+table.matrix td.item .gloss { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; line-height: 1.2; }
+table.matrix.mdmt td.item .gloss { display: inline; margin: 0 0 0 10px; font-size: 13px; }
 table.matrix tbody tr:hover td { background: #f7f9fd; }
 table.matrix tr.missing td { background: var(--red-soft); }
 table.matrix tr.missing td.item { box-shadow: inset 3px 0 0 var(--red); }
@@ -216,3 +218,30 @@ table.matrix.mdmt td:last-child, table.matrix.mdmt th:last-child { border-left: 
 .instr-shot img { width: 100%; display: block; }
 .instr-shot figcaption { padding: 10px 14px; font-size: 15px; color: #3a4357; }
 textarea[name="open_ended"] { width: 100%; font: inherit; padding: 10px; border-radius: 10px; border: 1.5px solid #c7cede; }
+
+/* ---------------------------------------------------------------- revision after Dr. Roy's review (2026-10-29):
+   every page fits on the screen without scrolling; robot pictures instead of the icon */
+#container-exp { margin: 14px auto 14px; padding: 20px 30px; }
+h2 { font-size: 24px; margin-bottom: 8px; }
+.lead.tight { margin: 0 0 12px; }
+/* player: as wide as the screen height allows (title bar + robot bar + page chrome ~330 px, more on pages with text) */
+.player { width: min(100%, calc((100vh - 330px) * 16 / 9)); margin: 0 auto; }
+.player.short { width: min(100%, calc((100vh - 380px) * 16 / 9)); }
+.player video { max-height: none; }
+.robot-bar { min-height: 76px; padding: 10px 16px; }
+.robot-pic { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: block; background: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); transition: box-shadow .2s; }
+.robot-bar.speaking .robot-pic { box-shadow: 0 0 0 4px rgba(111, 155, 255, .8); }
+.robot-pic.big { width: 150px; height: 150px; box-shadow: 0 0 0 5px var(--rc, #9aa3b2); }
+.robot-pic.mid { width: 84px; height: 84px; box-shadow: 0 0 0 4px var(--rc, #9aa3b2); flex: 0 0 auto; }
+.app-head .brand-pic { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.bar-q { color: #fff; font-weight: 650; font-size: 17px; align-self: center; margin-right: 6px; }
+.bar-buttons .btn.alt { background: #fff; color: var(--navy); }
+.trust-head { display: flex; align-items: center; gap: 20px; margin: 4px 0 18px; }
+.trust-head h2 { margin: 0; }
+.instr-shot { max-width: max-content; margin: 8px auto 0; }
+.instr-shot img { width: auto; max-width: 100%; max-height: calc(100vh - 340px); margin: 0 auto; }
+.steps.big li { font-size: 19px; padding: 14px 16px; }
+.consent-short p { font-size: 18px; max-width: 760px; }
+textarea[name="comments"] { width: 100%; font: inherit; padding: 8px; border-radius: 10px; border: 1.5px solid #c7cede; }
+.bubble { min-width: 190px; }

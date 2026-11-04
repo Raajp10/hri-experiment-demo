@@ -18,7 +18,6 @@ var DemoStore = {
   },
   get: function (id) { return DemoStore.all()[id]; },
   put: function (id, sess) { var s = DemoStore.all(); s[id] = sess; DemoStore.save(s); },
-  clear: function () { DemoStore.save({}); },
   // PsiTurk's balanced assignment (experiment.py get_random_condcount)
   assign: function () {
     var counts = {'0,0': 0, '0,1': 0, '1,0': 0, '1,1': 0};
@@ -46,7 +45,7 @@ function PsiTurk(uniqueId) {
   this.completeHIT = function () {
     sess.status = 'completed'; sess.end = new Date().toISOString();
     DemoStore.put(uniqueId, sess);
-    window.location.href = 'index.html?worker=' + encodeURIComponent(uniqueId) + '#data';
+    window.location.href = (window.DEMO_DONE_PAGE || 'index.html') + '?worker=' + encodeURIComponent(uniqueId) + '#data';
   };
 }
 

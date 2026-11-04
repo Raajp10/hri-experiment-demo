@@ -346,6 +346,205 @@ var CLIP_CUES = {
    }
   ]
  },
+ "instr_1_warehouse.mp4": {
+  "clip": "instr_1_warehouse",
+  "duration": 9.0,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "This is a big warehouse. A robot delivers boxes here."
+   },
+   {
+    "t": 4.5,
+    "message": "",
+    "caption": "There are six zones. Each zone has a letter, from A to F."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 3.425
+   },
+   {
+    "t": 4.5,
+    "dur": 3.262
+   }
+  ]
+ },
+ "instr_2_dock.mp4": {
+  "clip": "instr_2_dock",
+  "duration": 10.0,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "The robot calls each zone a room. Zone A is Room A."
+   },
+   {
+    "t": 5.0,
+    "message": "",
+    "caption": "The robot starts here, at its dock."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 3.123
+   },
+   {
+    "t": 5.0,
+    "dur": 2.09
+   }
+  ]
+ },
+ "instr_3_drive.mp4": {
+  "clip": "instr_3_drive",
+  "duration": 32.6,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "Watch the robot drive to Room E."
+   },
+   {
+    "t": 12.0,
+    "message": "",
+    "caption": "Each aisle ends at a fork. One side is Room E. The other side is Room F."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 1.811
+   },
+   {
+    "t": 12.0,
+    "dur": 4.412
+   }
+  ]
+ },
+ "instr_4_blocked.mp4": {
+  "clip": "instr_4_blocked",
+  "duration": 6.5,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "Path blocked, need to reroute.",
+    "caption": ""
+   },
+   {
+    "t": 2.3,
+    "message": "Path blocked, need to reroute.",
+    "caption": "A box is in the way. The robot tells you about it."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 1.95
+   },
+   {
+    "t": 2.3,
+    "dur": 2.67
+   }
+  ]
+ },
+ "instr_5_finish.mp4": {
+  "clip": "instr_5_finish",
+  "duration": 26.0,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "Now the robot drives around the box."
+   },
+   {
+    "t": 22.5,
+    "message": "",
+    "caption": "It made it! This is Room E."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 2.136
+   },
+   {
+    "t": 22.5,
+    "dur": 1.44
+   }
+  ]
+ },
+ "instr_6_trust.mp4": {
+  "clip": "instr_6_trust",
+  "duration": 9.5,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "After each delivery, you tell us how much you trust the robot."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 3.344
+   }
+  ]
+ },
+ "instr_mode_low.mp4": {
+  "clip": "instr_mode_low",
+  "duration": 10.4,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "This robot will stop and ask you where to go."
+   },
+   {
+    "t": 4.5,
+    "message": "",
+    "caption": "You can say yes to its room. Or you can pick the other room."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 2.403
+   },
+   {
+    "t": 4.5,
+    "dur": 2.821
+   }
+  ]
+ },
+ "instr_mode_mid.mp4": {
+  "clip": "instr_mode_mid",
+  "duration": 10.4,
+  "cues": [
+   {
+    "t": 0.0,
+    "message": "",
+    "caption": "This robot will pick a room by itself."
+   },
+   {
+    "t": 4.0,
+    "message": "",
+    "caption": "Then it tells you what it did. You decide if it went to the right room."
+   }
+  ],
+  "voice": [
+   {
+    "t": 0.0,
+    "dur": 2.043
+   },
+   {
+    "t": 4.0,
+    "dur": 3.019
+   }
+  ]
+ },
  "nova_branch_J1_to-A.mp4": {
   "clip": "nova_branch_J1_to-A",
   "duration": 22.733,
@@ -689,180 +888,6 @@ var CLIP_CUES = {
    {
     "t": 54.096,
     "dur": 1.962
-   }
-  ]
- },
- "practice_pip_branch_J2_to-C.mp4": {
-  "clip": "practice_pip_branch_J2_to-C",
-  "duration": 24.5,
-  "cues": [
-   {
-    "t": 0.0,
-    "message": ""
-   }
-  ],
-  "voice": []
- },
- "practice_pip_branch_J2_to-D.mp4": {
-  "clip": "practice_pip_branch_J2_to-D",
-  "duration": 22.2,
-  "cues": [
-   {
-    "t": 0.0,
-    "message": ""
-   }
-  ],
-  "voice": []
- },
- "practice_pip_low_target-D_suggests-D.mp4": {
-  "clip": "practice_pip_low_target-D_suggests-D",
-  "duration": 21.767,
-  "cues": [
-   {
-    "t": 0.0,
-    "message": ""
-   },
-   {
-    "t": 15.768,
-    "message": "Path blocked, need to reroute."
-   },
-   {
-    "t": 18.72,
-    "message": "I suggest going to Room D. Confirm?"
-   }
-  ],
-  "voice": [
-   {
-    "t": 15.768,
-    "dur": 1.834
-   },
-   {
-    "t": 18.72,
-    "dur": 2.601
-   }
-  ]
- },
- "training.mp4": {
-  "clip": "training",
-  "duration": 104.033,
-  "cues": [
-   {
-    "t": 0.0,
-    "message": "",
-    "caption": "Welcome! This is the warehouse where the delivery robots work."
-   },
-   {
-    "t": 4.0,
-    "message": "",
-    "caption": "There are six loading zones, A to F, each marked with its letter."
-   },
-   {
-    "t": 9.0,
-    "message": "",
-    "caption": "The robot calls the zones rooms: Zone A is Room A, and so on."
-   },
-   {
-    "t": 14.0,
-    "message": "",
-    "caption": "The robot starts at its dock. Each aisle ends at a junction with two zones."
-   },
-   {
-    "t": 19.0,
-    "message": "",
-    "caption": "Here the task is Room E (Zone E). Watch the robot drive there."
-   },
-   {
-    "t": 51.568,
-    "message": "Path blocked, need to reroute."
-   },
-   {
-    "t": 53.834,
-    "message": "Path blocked, need to reroute.",
-    "caption": "Boxes can block an aisle. The robot reports this as a malfunction."
-   },
-   {
-    "t": 58.119,
-    "message": "Path blocked, need to reroute.",
-    "caption": "Some robots ASK you: accept their suggested room, or pick the other room."
-   },
-   {
-    "t": 63.206,
-    "message": "Path blocked, need to reroute.",
-    "caption": "Other robots DECIDE on their own and report back. You judge if they got it right."
-   },
-   {
-    "t": 68.512,
-    "message": "",
-    "caption": "Now watch the robot continue to Room E."
-   },
-   {
-    "t": 90.552,
-    "message": "",
-    "caption": "The robot reached Room E, the correct room."
-   },
-   {
-    "t": 94.512,
-    "message": "",
-    "caption": "After each delivery you will rate how much you trust the robot."
-   },
-   {
-    "t": 99.512,
-    "message": "",
-    "caption": "Next: one practice trial."
-   }
-  ],
-  "voice": [
-   {
-    "t": 0.0,
-    "dur": 3.1
-   },
-   {
-    "t": 4.0,
-    "dur": 3.587
-   },
-   {
-    "t": 9.0,
-    "dur": 4.064
-   },
-   {
-    "t": 14.0,
-    "dur": 3.947
-   },
-   {
-    "t": 19.0,
-    "dur": 3.889
-   },
-   {
-    "t": 51.568,
-    "dur": 1.834
-   },
-   {
-    "t": 53.834,
-    "dur": 3.785
-   },
-   {
-    "t": 58.119,
-    "dur": 4.551
-   },
-   {
-    "t": 63.206,
-    "dur": 3.994
-   },
-   {
-    "t": 68.512,
-    "dur": 2.287
-   },
-   {
-    "t": 90.552,
-    "dur": 2.461
-   },
-   {
-    "t": 94.512,
-    "dur": 3.088
-   },
-   {
-    "t": 99.512,
-    "dur": 1.591
    }
   ]
  }
