@@ -53,10 +53,12 @@ psiTurk.recordUnstructuredData('autonomy_order', ORDER.join('-'));
 // ------------------------------------------------------------------ helpers
 var $c = function () { return document.getElementById('container-exp'); };
 
+// Every new page also saves everything recorded so far, so closing the window loses at most the current page.
 function show(html) {
   if (leaving) return;
   $c().innerHTML = html;
   window.scrollTo(0, 0);
+  psiTurk.saveData();
 }
 
 // ------------------------------------------------------------------ leave the study (any page)
@@ -94,11 +96,24 @@ function leaveStudy() {
   psiTurk.recordUnstructuredData('withdrawn', true);
   leaving = true;
   ['leave-box', 'leave', 'timer'].forEach(function (id) { var el = document.getElementById(id); if (el) el.remove(); });
-  $c().innerHTML = '<h2>You have left the study</h2><p class="lead">Thank you for your time. Your answers will not be used. ' +
-    'You can close this window now.</p>';
   var pb = document.getElementById('progress-bar');
   if (pb) pb.style.width = '0';
-  if (psiTurk.withdraw) psiTurk.withdraw(); else psiTurk.saveData();
+  // "You have left" only once the server has the withdrawal; otherwise offer to try again.
+  var done = function () {
+    $c().innerHTML = '<h2>You have left the study</h2><p class="lead">Thank you for your time. Your answers will not be used. ' +
+      'You can close this window now.</p>';
+  };
+  var failed = function () {
+    $c().innerHTML = '<h2>Could not reach the study server</h2><p class="lead">Please check your internet connection.</p>' +
+      '<div class="actions"><button class="btn big" id="leave-retry">Try again</button></div>';
+    document.getElementById('leave-retry').onclick = send;
+  };
+  function send() {
+    $c().innerHTML = '<h2>Leaving the study…</h2>';
+    if (psiTurk.withdraw) psiTurk.withdraw({success: done, error: failed});
+    else psiTurk.saveData({success: done, error: failed});
+  }
+  send();
 }
 
 // Progress in the header bar: step label + bar (0-1).
@@ -267,7 +282,7 @@ function playClip(name) {
     }, {once: true});
     v.addEventListener('error', function () {
       document.getElementById('clip-status').innerHTML =
-        '<b>Video failed to load (' + name + ').</b> Please contact the researcher.';
+        '<b>Video failed to load (' + name + ').</b> Please check your internet connection and reload the page.';
       record({phase: 'error', clip: name, error: 'video_load_failed'});
     });
     // Block seeking via keyboard / context menu.
@@ -355,11 +370,14 @@ async function submitWhenComplete(names, btnSel) {
 
 var NEXT = '<p id="form-msg" class="err"></p><div class="actions"><button class="btn big" id="next">Next</button></div>';
 
-// One form page: shows it, starts the countdown, waits for complete answers.
-async function formPage(html, names, seconds, page) {
+// One form page: shows it, starts the countdown, waits for complete answers. `keep(answers)` puts the page's
+// answers into questiondata straight away (saved with the next page), so no answered page is lost.
+async function formPage(html, names, seconds, page, keep) {
   show(html + NEXT);
   countdown(seconds, page);
-  return submitWhenComplete(names, '#next');
+  var answers = await submitWhenComplete(names, '#next');
+  if (keep) keep(answers);
+  return answers;
 }
 
 // A page with only text (and pictures) and a button.
@@ -392,13 +410,13 @@ async function demographics() {
     '<div class="q" data-item="education"><label>Highest education: <select name="education"><option value="">— select —</option>' +
     '<option>High school or less</option><option>Some college</option><option>Bachelor\'s degree</option>' +
     '<option>Master\'s degree</option><option>Doctorate</option><option>Other</option></select></label></div></div>',
-    ['age', 'gender', 'education'], 90, 'demographics_1'));
+    ['age', 'gender', 'education'], 90, 'demographics_1', saveQuestions));
   setStep(0, 0.33);
   var yn = [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}];
   Object.assign(data, await formPage('<div class="eyebrow">About you · 2 of 3</div><h2>Have you done this before?</h2>' +
     '<div class="q"><p>Have you taken part in a PsiTurk study before?</p>' + radioRow('psiturk_before', yn) + '</div>' +
     '<div class="q"><p>Have you worked with robots before?</p>' + radioRow('robots_before', yn) + '</div>',
-    ['psiturk_before', 'robots_before'], 60, 'demographics_2'));
+    ['psiturk_before', 'robots_before'], 60, 'demographics_2', saveQuestions));
   setStep(0, 0.66);
   Object.assign(data, await formPage('<div class="eyebrow">About you · 3 of 3</div><h2>Robots and games</h2>' +
     '<div class="q"><p>How much have you used or talked to robots?</p>' +
@@ -407,7 +425,7 @@ async function demographics() {
     '<div class="q"><p>How often do you play video games?</p>' +
     radioRow('game_frequency', [{value: 1, label: 'Never'}, {value: 2, label: 'Less than monthly'},
       {value: 3, label: 'Monthly'}, {value: 4, label: 'Weekly'}, {value: 5, label: 'Daily'}]) + '</div>',
-    ['robot_experience', 'game_frequency'], 60, 'demographics_3'));
+    ['robot_experience', 'game_frequency'], 60, 'demographics_3', saveQuestions));
   data.demographics_rt_ms = Math.round(performance.now() - t0);
   saveQuestions(data);
   save();
@@ -423,7 +441,7 @@ async function nars() {
     Object.assign(data, await formPage('<div class="eyebrow">Your views · ' + (p + 1) + ' of 3</div>' +
       '<h2>What do you think about robots?</h2><p class="lead tight">How much do you agree?</p>' +
       '<div class="matrix-wrap">' + matrix(items, scale, 'nars') + '</div>',
-      items.map(function (i) { return i.id; }), 90, 'nars_' + (p + 1)));
+      items.map(function (i) { return i.id; }), 90, 'nars_' + (p + 1), saveQuestions));
   }
   var pass = parseInt(data.nars_attn, 10) === 5;
   attention.nars = pass;
@@ -598,6 +616,13 @@ async function postBlock(block, robot, autonomy) {
   for (var i = 0; i <= 7; i++) scale.push({value: i, label: i + (i === 0 ? '<br><small>Not at all</small>' : i === 7 ? '<br><small>Very</small>' : '')});
   scale.push({value: 'NA', label: 'Does not fit'});
   var head = function (n) { return '<div class="eyebrow">About ' + robot.name + ' · ' + n + ' of 5</div>'; };
+  // answers kept per page under the same keys as the summary below (b1_mdmt_reliable, b1_reliance, ...)
+  var keep = function (d) { saveQuestions(d, 'b' + block + '_'); };
+  var keepMdmt = function (d) {
+    var o = {};
+    Object.keys(d).forEach(function (k) { o[k.indexOf('mdmt_') === 0 ? k : 'mdmt_' + k] = d[k]; });
+    keep(o);
+  };
   var cuts = [[0, 6], [6, 12], [12, MDMT_ITEMS.length]];
   for (var p = 0; p < cuts.length; p++) {
     setStep(STEP_ROBOT + block - 1, 0.8 + p * 0.04);
@@ -605,16 +630,16 @@ async function postBlock(block, robot, autonomy) {
     Object.assign(data, await formPage(head(p + 1) + '<h2>How well does each word describe ' + robot.name + '?</h2>' +
       '<p class="lead tight">0 = not at all, 7 = very much. If a word does not make sense for a robot, pick "Does not fit".</p>' +
       '<div class="matrix-wrap">' + matrix(items, scale, 'mdmt') + '</div>',
-      items.map(function (it) { return it.id; }), 120, 'mdmt_' + block + '_' + (p + 1)));
+      items.map(function (it) { return it.id; }), 120, 'mdmt_' + block + '_' + (p + 1), keepMdmt));
   }
   Object.assign(data, await formPage(head(4) + '<h2>Next time</h2>' +
     '<div class="q"><p><b>Would you let ' + robot.name + ' make the next delivery on its own, with nobody watching?</b></p>' +
     radioRow('reliance', [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}]) + '</div>',
-    ['reliance'], 45, 'reliance_' + block));
+    ['reliance'], 45, 'reliance_' + block, keep));
   Object.assign(data, await formPage(head(5) + '<h2>Two last questions about ' + robot.name + '</h2>' +
     '<div class="q scale7"><p><b>How often was ' + robot.name + ' right?</b></p>' + radioRow('mc_correct', seven('Never', 'Always')) + '</div>' +
     '<div class="q scale7"><p><b>How much did ' + robot.name + ' decide by itself?</b></p>' + radioRow('mc_autonomy', seven('Not at all', 'Completely')) + '</div>',
-    ['mc_correct', 'mc_autonomy'], 60, 'checks_' + block));
+    ['mc_correct', 'mc_autonomy'], 60, 'checks_' + block, keep));
   var pass = data.mdmt_attn === '7';
   attention['block' + block] = pass;
   var out = {robot: robot.name, autonomy: autonomy, reliance: data.reliance, mc_correct: data.mc_correct,
@@ -677,14 +702,16 @@ async function debrief() {
   record({phase: 'finish'});
   var pb = document.getElementById('progress-bar');
   if (pb) pb.style.width = '100%';
-  show('<div class="done-icon">✓</div><h2>Thank you!</h2><p>Saving your data…</p>');
+  show('<h2>Saving your answers…</h2><p class="lead">Please do not close this window.</p>');
   var tries = 0;
   (function trySave() {
     psiTurk.saveData({
       success: function () { psiTurk.completeHIT(); },
       error: function () {
-        if (++tries < 5) setTimeout(trySave, 1000);
-        else show('<p class="err">Could not save data. Please contact the researcher.</p>');
+        if (++tries < 5) { setTimeout(trySave, 1000); return; }
+        show('<h2>Your answers are not saved yet</h2><p class="lead">Please check your internet connection, then click ' +
+             '“Try again”. Do not close this window.</p><div class="actions"><button class="btn big" id="save-retry">Try again</button></div>');
+        document.getElementById('save-retry').onclick = function () { tries = 0; trySave(); };
       }
     });
   })();

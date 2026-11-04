@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="static/css/style.css" type="text/css">
   <link rel="stylesheet" href="static/css/hri.css" type="text/css">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="firebase_config.js"></script>
   <script src="static/js/design.js"></script>
@@ -32,7 +33,6 @@
         <li><span class="ic">🔒</span><span>Your data is <b>de-identified</b>.</span></li>
         <li><span class="ic">↩</span><span>You can <b>stop at any time</b>: click “Leave study” at the top, or close this window.</span></li>
       </ul>
-      <p class="contact">Questions? Contact Raaj Atulkumar Patel, <a href="mailto:raajp98250@gmail.com">raajp98250@gmail.com</a>.</p>
       <p class="agree-note">By clicking “I agree”, you say that you are at least 18 years old and that you want to take part.</p>
       <div class="actions"><button type="button" class="btn big" id="agree">I agree</button>
         <button type="button" class="btn alt" id="decline">No thanks</button></div>
@@ -62,6 +62,12 @@
       var here = new URLSearchParams(location.search), out = new URLSearchParams();
       if (Study.tools) ['tools', 'fast', 'start'].forEach(function (k) { if (here.has(k)) out.set(k, here.get(k)); });
       location.href = 'experiment.html' + (out.toString() ? '?' + out : '');
+    }, function (e) {
+      console.warn('Could not start', e);
+      b.disabled = false;
+      b.textContent = 'I agree';
+      document.getElementById('consent-msg').textContent =
+        'Could not connect to the study server. Please check your internet connection and click “I agree” again.';
     });
   };
   document.getElementById('decline').onclick = function () {

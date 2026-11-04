@@ -40,10 +40,11 @@
       <button class="btn alt" id="dl-q">Download questiondata.csv</button>
       <button class="btn alt" id="dl-json">Download full backup (JSON)</button>
       <label class="chk"><input type="checkbox" id="with-tests"> include test runs</label>
+      <label class="chk"><input type="checkbox" id="with-unfinished"> include unfinished sessions</label>
     </div>
     <p class="muted small">PsiTurk format (no header row), the same files <code>psiturk download_datafiles</code> gives.
       Load them with <code>analysis/jasp_export.py --trialdata trialdata.csv</code> (questiondata.csv in the same folder).
-      Unfinished and withdrawn sessions are in the files too; the analysis excludes them.</p>
+      The two CSV files hold completed sessions only (tick the box to add unfinished ones); the backup holds everything.</p>
   </div>
   <div class="card">
     <h3>Sessions</h3>
@@ -68,6 +69,7 @@
   var all = [];
 
   function shown() { return all.filter(function (s) { return $('with-tests').checked || !DemoData.isTest(s); }); }
+  function forCsv() { return shown().filter(function (s) { return $('with-unfinished').checked || s.status === 'completed'; }); }
 
   function draw() {
     var list = shown();
@@ -103,8 +105,8 @@
   }
 
   $('with-tests').onchange = draw;
-  $('dl-csv').onclick = function () { DemoData.download('trialdata.csv', DemoData.trialdataCSV(shown())); };
-  $('dl-q').onclick = function () { DemoData.download('questiondata.csv', DemoData.questiondataCSV(shown())); };
+  $('dl-csv').onclick = function () { DemoData.download('trialdata.csv', DemoData.trialdataCSV(forCsv())); };
+  $('dl-q').onclick = function () { DemoData.download('questiondata.csv', DemoData.questiondataCSV(forCsv())); };
   $('dl-json').onclick = function () {
     DemoData.download('sessions_backup_' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(all, null, 1), 'application/json');
   };

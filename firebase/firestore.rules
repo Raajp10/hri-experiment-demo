@@ -1,10 +1,14 @@
 rules_version = '2';
-// Study database rules. Participants can create and update only their own session and can never read,
-// change a finished session or delete anything. Only the researcher (signed in with a verified email) reads.
+// Study database rules. Each participant is signed in anonymously; a session can be created and changed only by
+// that account (owner = its uid), never after it is completed or withdrawn, and never deleted. Participants
+// cannot read anything. Only the researcher (signed in with a verified email) reads sessions.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
     function isResearcher() {
-      return request.auth != null && request.auth.token.email == 'raajp98250@gmail.com'
+      return signedIn() && request.auth.token.email == 'raajp98250@gmail.com'
         && request.auth.token.email_verified == true;
     }
     function cells(d) {
@@ -16,10 +20,10 @@ service cloud.firestore {
 
     // condition counts for balanced assignment (PsiTurk's least-filled rotation)
     match /meta/counts {
-      allow read: if true;
-      allow create: if cells(request.resource.data)
+      allow read: if signedIn();
+      allow create: if signedIn() && cells(request.resource.data)
         && request.resource.data.c0 + request.resource.data.c1 + request.resource.data.c2 + request.resource.data.c3 == 1;
-      allow update: if cells(request.resource.data)
+      allow update: if signedIn() && cells(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().size() == 1
         && (plusOne('c0') || plusOne('c1') || plusOne('c2') || plusOne('c3'));
     }
@@ -27,13 +31,15 @@ service cloud.firestore {
     match /sessions/{id} {
       function valid() {
         let d = request.resource.data;
-        return d.uniqueid == id && d.condition is int && d.condition >= 0 && d.condition <= 3
+        return d.uniqueid == id && d.owner == request.auth.uid
+          && d.condition is int && d.condition >= 0 && d.condition <= 3
           && d.status in ['started', 'completed', 'withdrawn'] && d.data is list && d.data.size() <= 300
           && d.questiondata is map;
       }
       allow read: if isResearcher();
-      allow create: if valid() && request.resource.data.status == 'started';
-      allow update: if valid() && resource.data.status == 'started'
+      allow create: if signedIn() && valid() && request.resource.data.status == 'started';
+      allow update: if signedIn() && valid() && resource.data.owner == request.auth.uid
+        && resource.data.status == 'started'
         && request.resource.data.condition == resource.data.condition
         && request.resource.data.counterbalance == resource.data.counterbalance;
       allow delete: if false;
