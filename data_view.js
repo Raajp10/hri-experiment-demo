@@ -28,6 +28,8 @@ var DemoData = (function () {
       what = 'Robot ' + t.block + ': <b>' + t.robot + '</b>, ' + t.autonomy + ' autonomy';
     } else if (ph === 'instructions') {
       what = 'instruction page <code>' + esc(t.page) + '</code> (' + Math.round(t.watch_ms / 1000) + ' s video)';
+    } else if (ph === 'av_check') {
+      what = 'audio/video check passed on attempt ' + t.attempts + ' (video played ' + t.plays + '×)';
     } else if (ph === 'sound_check') {
       what = 'test sound played ' + t.plays + '×';
     } else if (ph === 'start') {
@@ -42,8 +44,9 @@ var DemoData = (function () {
 
   // questiondata keys, grouped for reading
   function section(k) {
-    if (/^(age|gender|psiturk_before|robots_before|education|robot_experience|game_frequency|demographics_rt_ms)$/.test(k)) return 'Demographics (before the experiment)';
-    if (/^nars/.test(k)) return 'Attitudes toward robots, NARS (before the experiment)';
+    if (/^(age|gender|gender_self|psiturk_before|robots_before|education|education_other|robot_experience|mobile_robot_experience|game_frequency|demographics_rt_ms|onboarding_version)$/.test(k)) return 'Demographics (before the experiment)';
+    if (/^av_check/.test(k)) return 'Audio/video check (before the experiment)';
+    if (/^nars/.test(k)) return 'Attitudes toward robots, NARS (older sessions only)';
     if (/^b1_/.test(k)) return 'Questionnaire about the robot';
     if (/^b2_/.test(k)) return 'Questionnaire after Robot 2';
     if (/^(design|group|autonomy_order)$/.test(k)) return 'Condition';

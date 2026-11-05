@@ -292,3 +292,90 @@ textarea[name="comments"] { width: 100%; font: inherit; padding: 8px; border-rad
   .consent-pic { flex-basis: 170px; width: 170px; height: 170px; }
   .q { padding: 10px 14px; margin-bottom: 10px; }
 }
+
+/* ---------------------------------------------------------------- second review (Dr. Roy, 2026-11-04) */
+/* About you: one column, label above every answer box, all boxes the same width */
+input[type=text] { font: inherit; font-size: 16px; padding: 9px 12px; border: 1.5px solid #c7cede; border-radius: 9px;
+  background: #fff; color: var(--ink); }
+input[type=text]:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+input[type=text]:disabled { background: #f1f3f7; }
+/* every question is one row: question on the left, answer box on the right (same column and width for all) */
+.fields { display: grid; gap: 10px; max-width: 860px; }
+.fields .q.field { margin: 0; display: grid; grid-template-columns: 340px 360px; column-gap: 20px; align-items: center;
+  padding: 12px 16px; }
+.fields .q.field > label { margin: 0; }
+.fields .field-msg, .fields .sub-field { grid-column: 2; }
+.q.field > label, .sub-field > label { display: block; font-weight: 650; margin: 0 0 6px; }
+.q.field > input, .q.field > select, .sub-field > input { display: block; width: 100%; margin: 0; }
+.q.field input[aria-invalid="true"] { border-color: var(--red); }
+.field-msg { color: var(--red); font-weight: 600; font-size: 15px; margin: 6px 0 0; }
+.field-msg:empty { display: none; }
+.sub-field { margin-top: 8px; }
+.sub-field > label { font-weight: 500; font-size: 15px; }
+.sub-field.missing input { border-color: var(--red); background: var(--red-soft); }
+.q-hint { display: block; font-size: 14.5px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+/* Instructions: banner that says these pages are not trials */
+.instr-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 10px; padding: 8px 14px;
+  border-radius: 10px; background: #fff8db; border: 1px solid #f3dc7b; color: #5b4a00; font-size: 15px; }
+.instr-banner .tag { text-transform: uppercase; letter-spacing: 1px; font-size: 12.5px; font-weight: 800; padding: 2px 10px;
+  border-radius: 999px; background: #5b4a00; color: #fff8db; }
+.player.short.instr { width: min(100%, calc((100vh - 440px) * 16 / 9)); }
+.bar-wait { color: #b9c3d9; font-size: 14px; align-self: center; white-space: nowrap; }
+.instr-split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.instr-split .instr-shot { margin: 0; max-width: 100%; }
+.instr-split .instr-shot img { max-height: calc(100vh - 430px); }
+.instr-split .steps { margin: 0; gap: 8px; }
+.instr-split .steps li { padding: 8px 12px; font-size: 15.5px; line-height: 1.35; }
+.callout { margin: 12px 0 0; padding: 10px 16px; }
+
+/* Audio/video check */
+.av-wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; align-items: start; margin-top: 8px; }
+.av-screen { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; }
+.av-screen video { width: 100%; height: 100%; display: block; object-fit: contain; }
+.av-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; }
+.av-play:active { transform: translate(-50%, -50%) translateY(1px); }
+.av-play[hidden], .sub-field[hidden] { display: none; }
+.av-form { display: grid; gap: 10px; }
+.av-form .hint, .av-form .err { margin: 0; }
+.av-form .actions { margin-top: 0; }
+
+table.matrix.experience td.item { width: 40%; padding-top: 7px; padding-bottom: 7px; }
+table.matrix.experience tr:has(input:checked) td.item::after { content: none; }
+table.matrix.experience thead th { padding-top: 6px; padding-bottom: 6px; }
+/* short question and its answers on one line */
+.q.inline { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 16px; align-items: center; }
+.q.inline > p { margin: 0; }
+table.matrix.experience thead th { position: static; }
+@media (max-width: 1000px) {
+  .fields .q.field, .q.inline { grid-template-columns: 1fr; }
+  .fields .q.field > label { margin-bottom: 6px; }
+  .fields .field-msg, .fields .sub-field { grid-column: 1; }
+}
+@media (max-width: 760px) {
+  .instr-split, .av-wrap { grid-template-columns: 1fr; }
+}
+@media (max-height: 700px) {
+  .instr-banner { padding: 5px 12px; margin-bottom: 6px; font-size: 14px; }
+  .fields { gap: 8px; }
+  .q-hint { font-size: 13.5px; }
+}
+
+/* laptop screens (up to 800 px of page): the "about you" and audio/video pages stay on one screen */
+@media (max-height: 800px) {
+  .fields { gap: 8px; }
+  .fields .q.field { padding: 9px 14px; }
+  .q.inline, .q { padding: 10px 14px; margin-bottom: 10px; }
+  table.matrix.experience label { min-height: 34px; }
+  table.matrix.experience td.item { padding-top: 4px; padding-bottom: 4px; line-height: 1.3; }
+  .av-form { gap: 8px; }
+  .av-form .q.field { padding: 8px 12px; margin: 0; }
+  .av-wrap { margin-top: 4px; }
+}
+@media (max-height: 700px) {
+  .q.inline, .q { padding: 7px 12px; margin-bottom: 7px; }
+  .q > p { margin-bottom: 4px; }
+  table.matrix.experience label { min-height: 30px; }
+  table.matrix.experience td.item .gloss { display: inline; margin-left: 6px; }
+  .radio-row .opt { padding: 7px 10px; }
+}

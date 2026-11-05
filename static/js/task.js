@@ -9,18 +9,21 @@
  *             2 = unreliable/low, 3 = unreliable/mid (config.txt: num_conds 4, num_counters 1).
  * CLIP_SPEC comes from static/js/clip_spec.js, CLIP_CUES from videos/cues.js.
  *
- * Procedure (revised after Dr. Roy's review, 2026-10-29): consent (first page) -> about you (3 pages) ->
- * NARS (3 pages) -> sound check -> how it works (6 short pages, each with a piece of the training video) ->
- * per robot: meet the robot, how it works (its own mode only), what you will see (screenshot), 3 deliveries
- * (target, video + decision, trust), questionnaire (5 pages) -> open-ended question -> debrief.
+ * Procedure (revised after Dr. Roy's second review, 2026-11-04): consent (first page) -> about you (2 pages:
+ * age/gender/education, then robot and game experience; NARS removed) -> audio/video check (type the word seen
+ * and the word heard) -> instructions (10 pages, each marked "Instructions · not a trial", no clock: 6 short
+ * pages with a piece of the training video, "what you will do", then per robot: meet the robot, how it works
+ * (its own mode only), what you will see) -> per robot: 3 deliveries (target, video + decision, trust),
+ * questionnaire (5 pages) -> open-ended question -> debrief.
  * No practice trial. Every page fits on the screen without scrolling.
  *
  * Data: experimental records go to trialdata via record(); all pre- and post-experiment questions go to
- * questiondata via saveQuestions(), one key per answer. Every page shows a countdown in the header (soft
- * limit: pages that ran over are listed in questiondata 'pages_over_time').
+ * questiondata via saveQuestions(), one key per answer. From the first delivery on, every page shows a
+ * countdown in the header (soft limit: pages that ran over are listed in questiondata 'pages_over_time');
+ * the pages before it (about you, audio/video check, instructions) have no clock.
  */
 /* global PsiTurk, uniqueId, adServerLoc, mode, condition, counterbalance, CLIP_SPEC, CLIP_CUES, STUDY_DESIGN,
-   NARS_ITEMS, NARS_SCALE, MDMT_ITEMS */
+   MDMT_ITEMS */
 
 var psiTurk = new PsiTurk(uniqueId, adServerLoc, mode);
 var params = new URLSearchParams(window.location.search);
@@ -56,9 +59,25 @@ var $c = function () { return document.getElementById('container-exp'); };
 // Every new page also saves everything recorded so far, so closing the window loses at most the current page.
 function show(html) {
   if (leaving) return;
+  clearMarksOnAnswer();
   $c().innerHTML = html;
   window.scrollTo(0, 0);
   psiTurk.saveData();
+}
+
+// A question marked "missing" in red loses the mark as soon as it is answered.
+var marksWired = false;
+function clearMarksOnAnswer() {
+  if (marksWired) return;
+  marksWired = true;
+  ['input', 'change'].forEach(function (ev) {
+    $c().addEventListener(ev, function (e) {
+      if (e.target.dataset && e.target.dataset.check === 'age') return;   // the age box has its own check
+      for (var el = e.target; el && el !== $c(); el = el.parentElement) {
+        if (el.dataset && el.dataset.item) el.classList.remove('missing');
+      }
+    });
+  });
 }
 
 // ------------------------------------------------------------------ leave the study (any page)
@@ -116,15 +135,25 @@ function leaveStudy() {
   send();
 }
 
-// Progress in the header bar: step label + bar (0-1).
-var STEPS = ['About you', 'Your views', 'Sound check', 'How it works']
-  .concat(NBLOCKS === 2 ? ['Robot 1', 'Robot 2'] : ['The robot']).concat(['Finish']);
-var STEP_ROBOT = 4, STEP_FINISH = STEPS.length - 1;
-function setStep(k, within) {
+// ------------------------------------------------------------------ progress (header)
+// The label names the part of the study and the page within that part, e.g. "Instructions — Page 2 of 10" or
+// "Experiment — Delivery 1 of 3" ("Step 4 of 6" was unclear, Dr. Roy's review 2026-11-04). The thin bar under
+// the header shows progress through the whole study and never moves back.
+var INSTR_GENERAL = 7;                          // 6 video pages + "What you will do"
+var INSTR_ROBOT = 3;                            // meet the robot, how it works, what you will see
+var INSTR_TOTAL = INSTR_GENERAL + INSTR_ROBOT;  // instruction pages before the first delivery
+// share of the bar for each part of the study
+var PART = {about: [0, 0.06], check: [0.06, 0.1], instr: [0.1, 0.3], robots: [0.3, 0.92], finish: [0.92, 1]};
+var barAt = 0;
+function partAt(part, f) { var p = PART[part]; return p[0] + (p[1] - p[0]) * Math.min(1, f || 0); }
+function blockAt(block, f) { return partAt('robots', (block - 1 + f) / NBLOCKS); }
+function setProgress(label, frac) {
   var bar = document.getElementById('progress-bar'), lab = document.getElementById('step-label');
-  if (bar) bar.style.width = Math.round(100 * (k + (within || 0)) / STEPS.length) + '%';
-  if (lab) lab.textContent = 'Step ' + (k + 1) + ' of ' + STEPS.length + ' · ' + STEPS[k];
+  barAt = Math.max(barAt, frac);
+  if (bar) bar.style.width = Math.round(100 * barAt) + '%';
+  if (lab) lab.textContent = label;
 }
+function pageOf(part, n, total) { return part + ' — Page ' + n + ' of ' + total; }
 
 function clicked(selector) {
   return new Promise(function (resolve) {
@@ -170,6 +199,14 @@ function timerEl() {
 }
 function mmss(sec) { return Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2); }
 function stopCountdown() { if (timerId) clearInterval(timerId); timerId = null; }
+// The clock is shown only during the experiment (deliveries) and the questionnaires after it. Pages before the
+// first delivery (about you, audio/video check, instructions) have no clock, so they do not look like trials.
+var clockOn = false;
+function hideClock() {
+  stopCountdown();
+  var el = document.getElementById('timer');
+  if (el) el.remove();
+}
 // Counts down `seconds` for this page. At 0 the timer turns red and asks for an answer; the page stays open.
 function countdown(seconds, page) {
   stopCountdown();
@@ -192,6 +229,7 @@ function countdown(seconds, page) {
 }
 // While a video plays the timer shows how much of the video is left.
 function videoCountdown(v) {
+  if (!clockOn) return;
   stopCountdown();
   var el = timerEl();
   if (el && v.duration) {
@@ -334,13 +372,29 @@ function seven(lo, hi) {
   return s;
 }
 
-// Collects radio/select/number inputs; returns null and highlights missing ones if incomplete.
+// Age: whole years from 18 to 80, digits only. Returns an error message, or null when the age is valid.
+var AGE_MIN = 18, AGE_MAX = 80;
+function ageProblem(s) {
+  s = String(s || '').trim();
+  if (s === '') return 'Please enter your age.';
+  if (!/^\d+$/.test(s)) return 'Please enter your age as a whole number, using digits only (for example 25).';
+  var n = Number(s);
+  if (n < AGE_MIN || n > AGE_MAX) return 'Please enter an age between ' + AGE_MIN + ' and ' + AGE_MAX + '.';
+  return null;
+}
+
+// Collects radio/select/number/text inputs; returns null and highlights missing ones if incomplete.
 function collect(names) {
   var out = {}, missing = [];
   names.forEach(function (n) {
     var el = document.querySelector('[name="' + n + '"]');
     var val = null;
-    if (el && el.type === 'number') {
+    if (el && el.dataset.check === 'age') {
+      var problem = ageProblem(el.value);
+      val = problem ? null : String(Number(el.value.trim()));
+      var m = document.getElementById('age-msg');
+      if (m) m.textContent = problem || '';
+    } else if (el && el.type === 'number') {
       var x = el.value.trim() === '' ? NaN : Number(el.value);
       val = (isNaN(x) || x < Number(el.min) || x > Number(el.max)) ? null : String(x);
     } else if (el && el.type === 'radio') {
@@ -363,18 +417,20 @@ async function submitWhenComplete(names, btnSel) {
     var data = collect(names);
     if (data) return data;
     btn.disabled = false;
-    msg.textContent = 'Please answer the questions marked in red.' +
-      (document.querySelector('.missing [type=number]') ? ' Age must be a number from 18 to 80.' : '');
+    msg.textContent = 'Please answer the questions marked in red.';
   }
 }
 
 var NEXT = '<p id="form-msg" class="err"></p><div class="actions"><button class="btn big" id="next">Next</button></div>';
 
+// Shows the page's countdown, or no clock at all when `seconds` is null (pages before the experiment).
+function pageClock(seconds, page) { if (seconds) countdown(seconds, page); else hideClock(); }
+
 // One form page: shows it, starts the countdown, waits for complete answers. `keep(answers)` puts the page's
 // answers into questiondata straight away (saved with the next page), so no answered page is lost.
 async function formPage(html, names, seconds, page, keep) {
   show(html + NEXT);
-  countdown(seconds, page);
+  pageClock(seconds, page);
   var answers = await submitWhenComplete(names, '#next');
   if (keep) keep(answers);
   return answers;
@@ -383,145 +439,303 @@ async function formPage(html, names, seconds, page, keep) {
 // A page with only text (and pictures) and a button.
 async function textPage(html, seconds, page, label) {
   show(html + '<div class="actions"><button class="btn big" id="go">' + (label || 'Next') + '</button></div>');
-  countdown(seconds, page);
+  pageClock(seconds, page);
   await clicked('#go');
 }
 
-// A short page with a heading, one or two sentences and a video; "Next" appears in the robot bar at the end.
-async function videoPage(title, text, clip, page, robot) {
-  show('<h2>' + title + '</h2><p class="lead tight">' + text + '</p>' + playerHTML(robot || EXAMPLE, null, '', 'short'));
-  var ms = await playClip(clip);
-  record({phase: 'instructions', page: page, clip: clip, watch_ms: ms});
-  document.getElementById('bar-buttons').innerHTML = '<button class="btn" id="next">Next</button>';
-  countdown(30, page);
-  await clicked('#next');
+// Top of every instruction page: says plainly that this is not a trial.
+function instrBanner(n, total) {
+  return '<div class="instr-banner"><span class="tag">Instructions · not a trial</span>' +
+    '<span>Page ' + n + ' of ' + total + '. Read and watch. Nothing on this page is scored.</span></div>';
+}
+
+// An instruction page with a heading, a few sentences and a video (no clock). While the video plays, the robot
+// bar says that "Next" comes at the end; then "Watch again" and "Next" appear there.
+async function videoPage(n, total, title, text, clip, page, robot) {
+  hideClock();
+  show(instrBanner(n, total) + '<h2>' + title + '</h2><p class="lead tight">' + text + '</p>' +
+    playerHTML(robot || EXAMPLE, null, '', 'short instr'));
+  var bb = document.getElementById('bar-buttons');
+  bb.innerHTML = '<span class="bar-wait">“Next” appears when the video ends</span>';
+  var ms = await playClip(clip), replays = 0;
+  while (true) {
+    bb.innerHTML = '<button class="btn alt" id="again">Watch again</button><button class="btn" id="next">Next</button>';
+    var b = await clicked('#again, #next');
+    if (b.id === 'next') break;
+    replays++;
+    bb.innerHTML = '<span class="bar-wait">“Next” appears when the video ends</span>';
+    await playClip(clip);
+  }
+  record({phase: 'instructions', page: page, clip: clip, watch_ms: ms, replays: replays});
 }
 
 // ------------------------------------------------------------------ before the experiment
-async function demographics() {
-  var t0 = performance.now(), data = {};
-  setStep(0);
-  Object.assign(data, await formPage('<div class="eyebrow">About you · 1 of 3</div><h2>A few questions about you</h2>' +
-    '<div class="form-grid">' +
-    '<div class="q" data-item="age"><label>How old are you? <input type="number" name="age" min="18" max="80" step="1"></label></div>' +
-    '<div class="q" data-item="gender"><label>Gender: <select name="gender"><option value="">— select —</option>' +
+// Version of the pages before the experiment, saved with the answers (questiondata 'onboarding_version').
+// v3 (Dr. Roy's review, 2026-11-04): NARS and "robots_before" removed; robot_experience now asks about robots of
+// any kind on an experience scale (was: "How much have you used or talked to robots?", Never ... Expert);
+// mobile_robot_experience added; gender_self / education_other added; audio/video check replaces the sound check.
+var ONBOARDING_VERSION = 'v3-2026-11-04';
+
+// About you, page 1: one column, every question with its label above the answer box. The age is checked while
+// it is typed; "Prefer to self-describe" and "Other" open a text box.
+async function aboutYouPage1() {
+  setProgress(pageOf('About you', 1, 2), partAt('about', 0));
+  show('<div class="eyebrow">About you</div><h2>A few questions about you</h2>' +
+    '<div class="fields">' +
+    '<div class="q field" data-item="age"><label for="f-age">How old are you?</label>' +
+    '<input type="text" id="f-age" name="age" data-check="age" inputmode="numeric" autocomplete="off" maxlength="3" ' +
+    'placeholder="Age in years (18–80)" aria-describedby="age-msg"><p class="field-msg" id="age-msg" aria-live="polite"></p></div>' +
+    '<div class="q field" data-item="gender"><label for="f-gender">What is your gender?</label>' +
+    '<select id="f-gender" name="gender"><option value="">— select —</option>' +
     '<option>Woman</option><option>Man</option><option>Non-binary</option><option>Prefer to self-describe</option>' +
-    '<option>Prefer not to say</option></select></label></div>' +
-    '<div class="q" data-item="education"><label>Highest education: <select name="education"><option value="">— select —</option>' +
+    '<option>Prefer not to say</option></select>' +
+    '<div class="sub-field" id="gender-self" hidden><input type="text" id="f-gender-self" name="gender_self" ' +
+    'maxlength="60" autocomplete="off" placeholder="Please describe (optional)" aria-label="Please describe your gender (optional)"></div></div>' +
+    '<div class="q field" data-item="education"><label for="f-edu">What is the highest level of education you have completed?</label>' +
+    '<select id="f-edu" name="education"><option value="">— select —</option>' +
     '<option>High school or less</option><option>Some college</option><option>Bachelor\'s degree</option>' +
-    '<option>Master\'s degree</option><option>Doctorate</option><option>Other</option></select></label></div></div>',
-    ['age', 'gender', 'education'], 90, 'demographics_1', saveQuestions));
-  setStep(0, 0.33);
-  var yn = [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}];
-  Object.assign(data, await formPage('<div class="eyebrow">About you · 2 of 3</div><h2>Have you done this before?</h2>' +
-    '<div class="q"><p>Have you taken part in a PsiTurk study before?</p>' + radioRow('psiturk_before', yn) + '</div>' +
-    '<div class="q"><p>Have you worked with robots before?</p>' + radioRow('robots_before', yn) + '</div>',
-    ['psiturk_before', 'robots_before'], 60, 'demographics_2', saveQuestions));
-  setStep(0, 0.66);
-  Object.assign(data, await formPage('<div class="eyebrow">About you · 3 of 3</div><h2>Robots and games</h2>' +
-    '<div class="q"><p>How much have you used or talked to robots?</p>' +
-    radioRow('robot_experience', [{value: 1, label: 'Never'}, {value: 2, label: 'A little'},
-      {value: 3, label: 'Some'}, {value: 4, label: 'A lot'}, {value: 5, label: 'Expert'}]) + '</div>' +
-    '<div class="q"><p>How often do you play video games?</p>' +
+    '<option>Master\'s degree</option><option>Doctorate</option><option>Other</option></select>' +
+    '<div class="sub-field" id="edu-other" data-item="education_other" hidden><input type="text" id="f-edu-other" ' +
+    'name="education_other" maxlength="60" autocomplete="off" placeholder="Please write your highest education" ' +
+    'aria-label="Please write your highest education"></div></div>' +
+    '</div>' + NEXT);
+  hideClock();
+
+  var age = document.getElementById('f-age'), ageMsg = document.getElementById('age-msg');
+  var ageRow = document.querySelector('[data-item="age"]'), next = document.getElementById('next');
+  // Flags an impossible age right away. While the first digit is being typed it waits for the second one;
+  // when the participant leaves the box, any invalid age is flagged. "Next" stays off while the age is wrong.
+  function checkAge(final) {
+    var v = age.value.trim();
+    var problem = v === '' ? null : ageProblem(v);
+    if (problem && !final && /^\d$/.test(v)) problem = null;
+    ageMsg.textContent = problem || '';
+    ageRow.classList.toggle('missing', !!problem);
+    age.setAttribute('aria-invalid', problem ? 'true' : 'false');
+    next.disabled = !!problem;
+  }
+  age.addEventListener('input', function () { checkAge(false); });
+  age.addEventListener('blur', function () { checkAge(true); });
+  var gender = document.getElementById('f-gender'), edu = document.getElementById('f-edu');
+  gender.addEventListener('change', function () {
+    document.getElementById('gender-self').hidden = gender.value !== 'Prefer to self-describe';
+  });
+  edu.addEventListener('change', function () {
+    document.getElementById('edu-other').hidden = edu.value !== 'Other';
+  });
+
+  var msg = document.getElementById('form-msg');
+  while (true) {
+    var btn = await clicked('#next');
+    var names = ['age', 'gender', 'education'].concat(edu.value === 'Other' ? ['education_other'] : []);
+    var d = collect(names);
+    if (d) {
+      var self = document.getElementById('f-gender-self').value.trim();
+      d.gender_self = d.gender === 'Prefer to self-describe' ? self : '';
+      d.education_other = d.education === 'Other' ? d.education_other : '';
+      return d;
+    }
+    btn.disabled = !!ageProblem(age.value) && age.value.trim() !== '';
+    msg.textContent = 'Please answer the questions marked in red.';
+  }
+}
+
+var EXPERIENCE_SCALE = [{value: 1, label: 'No experience'}, {value: 2, label: 'Slight experience'},
+  {value: 3, label: 'Moderate experience'}, {value: 4, label: 'Considerable experience'},
+  {value: 5, label: 'Extensive experience'}];
+
+async function demographics() {
+  var t0 = performance.now(), data = {onboarding_version: ONBOARDING_VERSION};
+  Object.assign(data, await aboutYouPage1());
+  saveQuestions(data);
+  setProgress(pageOf('About you', 2, 2), partAt('about', 0.5));
+  // General robot experience (the study robot is a delivery robot, not a social robot), rated on an experience
+  // scale so that people who have never used a robot can answer too.
+  Object.assign(data, await formPage('<div class="eyebrow">About you</div><h2>Your experience with robots and games</h2>' +
+    '<div class="q"><p><b>How much experience do you have with…</b></p><div class="matrix-wrap">' +
+    matrix([{id: 'robot_experience', text: 'robots of any kind?',
+             hint: 'for example robot vacuum cleaners, delivery robots, robot arms or robot toys'},
+            {id: 'mobile_robot_experience', text: 'robots that move around by themselves?',
+             hint: 'for example delivery robots or warehouse robots'}], EXPERIENCE_SCALE, 'experience') + '</div></div>' +
+    '<div class="q inline" data-item="game_frequency"><p><b>How often do you play video games?</b></p>' +
     radioRow('game_frequency', [{value: 1, label: 'Never'}, {value: 2, label: 'Less than monthly'},
-      {value: 3, label: 'Monthly'}, {value: 4, label: 'Weekly'}, {value: 5, label: 'Daily'}]) + '</div>',
-    ['robot_experience', 'game_frequency'], 60, 'demographics_3', saveQuestions));
+      {value: 3, label: 'Monthly'}, {value: 4, label: 'Weekly'}, {value: 5, label: 'Daily'}]) + '</div>' +
+    '<div class="q inline" data-item="psiturk_before"><p><b>Have you taken part in a PsiTurk study before?</b></p>' +
+    radioRow('psiturk_before', [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}]) + '</div>',
+    ['robot_experience', 'mobile_robot_experience', 'game_frequency', 'psiturk_before'], null, 'demographics_2', saveQuestions));
   data.demographics_rt_ms = Math.round(performance.now() - t0);
   saveQuestions(data);
   save();
 }
 
-// NARS on 3 pages of 5 statements (item order unchanged; the attention check is on page 2).
-async function nars() {
-  var t0 = performance.now(), data = {};
-  var scale = NARS_SCALE.map(function (l, i) { return {value: i + 1, label: l}; });
-  for (var p = 0; p < 3; p++) {
-    setStep(1, p / 3);
-    var items = NARS_ITEMS.slice(p * 5, p * 5 + 5);
-    Object.assign(data, await formPage('<div class="eyebrow">Your views · ' + (p + 1) + ' of 3</div>' +
-      '<h2>What do you think about robots?</h2><p class="lead tight">How much do you agree?</p>' +
-      '<div class="matrix-wrap">' + matrix(items, scale, 'nars') + '</div>',
-      items.map(function (i) { return i.id; }), 90, 'nars_' + (p + 1), saveQuestions));
+// Audio/video check (Dr. Roy's review, 2026-11-04). A short clip SHOWS one word and a voice SAYS a different word;
+// the participant types both, which shows they can see the videos and hear their sound. After a wrong answer a
+// new clip with new words is used. The clips are made by scripts/make_av_check.py (keep the words the same).
+// Nothing about the robot or the study groups is shown; no camera or microphone is used.
+var AV_CHECKS = [{clip: 'av_check_1.mp4', seen: 'apple', heard: 'garden'},
+                 {clip: 'av_check_2.mp4', seen: 'pencil', heard: 'river'}];
+function wordOf(s) { return String(s || '').toLowerCase().replace(/[^a-z]/g, ''); }
+
+async function avCheck() {
+  setProgress('Audio & video check', partAt('check', 0));
+  hideClock();
+  show('<div class="eyebrow">Audio &amp; video check</div><h2>Can you see and hear the videos?</h2>' +
+    '<p class="lead tight">The study has videos with sound. Please turn on your sound or put on headphones, then click ' +
+    '<b>Play</b>. The video <b>shows</b> one word, and a voice <b>says</b> a different word. Type both words.</p>' +
+    '<div class="av-wrap"><div class="av-screen"><video id="av" playsinline preload="auto"' + (FAST ? ' muted' : '') + '></video>' +
+    '<button type="button" class="btn big av-play" id="av-play">▶ Play</button></div>' +
+    '<div class="av-form">' +
+    '<div class="q field" data-item="av_seen"><label for="av-seen">The word you <b>saw</b> in the video</label>' +
+    '<input type="text" id="av-seen" name="av_seen" maxlength="30" autocomplete="off" disabled></div>' +
+    '<div class="q field" data-item="av_heard"><label for="av-heard">The word you <b>heard</b></label>' +
+    '<input type="text" id="av-heard" name="av_heard" maxlength="30" autocomplete="off" disabled></div>' +
+    '<p class="hint" id="av-hint">Play the video first. The boxes open when it ends.</p>' +
+    '<p id="form-msg" class="err" aria-live="polite"></p>' +
+    '<div class="actions"><button type="button" class="btn big" id="av-go" disabled>Check my answers</button></div>' +
+    '</div></div>');
+
+  var v = document.getElementById('av'), play = document.getElementById('av-play');
+  var seen = document.getElementById('av-seen'), heard = document.getElementById('av-heard');
+  var go = document.getElementById('av-go'), msg = document.getElementById('form-msg');
+  var t0 = performance.now(), attempt = 0, plays = 0, log = [];
+  var item = AV_CHECKS[0];
+  function load(k) {
+    item = AV_CHECKS[k % AV_CHECKS.length];
+    v.src = VIDEO_DIR + item.clip;
+    play.textContent = '▶ Play';
+    play.hidden = false;
+    seen.value = heard.value = '';
+    seen.disabled = heard.disabled = go.disabled = true;
+    document.getElementById('av-hint').textContent = 'Play the video first. The boxes open when it ends.';
   }
-  var pass = parseInt(data.nars_attn, 10) === 5;
-  attention.nars = pass;
-  data.nars_attention_pass = pass;
-  data.nars_rt_ms = Math.round(performance.now() - t0);
-  saveQuestions(data);
+  play.onclick = function () {
+    plays++;
+    play.hidden = true;
+    v.currentTime = 0;
+    if (FAST) v.playbackRate = 16;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { play.hidden = false; });
+  };
+  v.addEventListener('ended', function () {
+    play.textContent = '↻ Play again';
+    play.hidden = false;
+    seen.disabled = heard.disabled = go.disabled = false;
+    document.getElementById('av-hint').textContent = 'You can play the video again if you need to.';
+    if (!seen.value) seen.focus();
+  });
+  v.addEventListener('error', function () {
+    msg.textContent = 'The video did not load. Please check your internet connection and reload the page.';
+    record({phase: 'error', clip: item.clip, error: 'video_load_failed'});
+  });
+  load(0);
+
+  while (true) {
+    await clicked('#av-go');
+    var s = wordOf(seen.value), h = wordOf(heard.value);
+    if (!s || !h) {
+      go.disabled = false;
+      document.querySelector('[data-item="av_seen"]').classList.toggle('missing', !s);
+      document.querySelector('[data-item="av_heard"]').classList.toggle('missing', !h);
+      msg.textContent = 'Please type both words.';
+      continue;
+    }
+    attempt++;
+    var seenOk = s === item.seen, heardOk = h === item.heard;
+    log.push({attempt: attempt, clip: item.clip, seen_ok: seenOk, heard_ok: heardOk});
+    if (seenOk && heardOk) break;
+    document.querySelectorAll('.av-form .q').forEach(function (q) { q.classList.remove('missing'); });
+    msg.textContent = (!seenOk && !heardOk ? 'Neither word is right.'
+      : !seenOk ? 'The word you saw is not right. Please make sure you can see the video.'
+      : 'The word you heard is not right. Please check that your sound is on and turned up.') +
+      ' Here is a new video with new words: click Play and try again.' +
+      (attempt >= 3 ? ' If you still cannot see or hear the video, you cannot do this study; you can click “Leave study” at the top.' : '');
+    load(attempt);
+  }
+  v.pause();
+  msg.textContent = '';
+  record({phase: 'av_check', passed: true, attempts: attempt, plays: plays, tries: log,
+          rt_ms: Math.round(performance.now() - t0)});
+  saveQuestions({av_check_attempts: attempt, av_check_plays: plays});
   save();
 }
 
-// The videos have a voice-over: make sure the participant can hear it.
-async function soundCheck() {
-  setStep(2);
-  show('<div class="eyebrow">Sound</div><h2>Can you hear the robot?</h2>' +
-    '<p class="lead">The robot talks in the videos. Please turn on your sound or put on headphones.</p>' +
-    '<div class="sound-test"><button class="btn" id="play-sound">' + SOUND_ICON.replace('<svg', '<svg width="20" height="20"') +
-    ' Play test sound</button><span id="sound-msg" class="hint">Click to hear the robot.</span></div>' +
-    '<audio id="sound-check" preload="auto" src="static/audio/sound_check.m4a"></audio>' +
-    '<div class="actions"><button class="btn big" id="go"' + (FAST ? '' : ' disabled') + '>I can hear it</button></div>');
-  countdown(90, 'sound_check');
-  var plays = 0, a = document.getElementById('sound-check');
-  document.getElementById('play-sound').onclick = function () {
-    plays++;
-    a.currentTime = 0;
-    var pr = a.play();
-    if (pr && pr.catch) pr.catch(function () {});
-    document.getElementById('sound-msg').innerHTML = 'Playing… If you hear nothing, turn up the volume and try again.';
-    setTimeout(function () {
-      document.getElementById('sound-msg').innerHTML = '<span class="ok">Did you hear it?</span> If not, turn up the volume and play it again.';
-      document.getElementById('go').disabled = false;
-    }, 1500);
-  };
-  await clicked('#go');
-  record({phase: 'sound_check', plays: plays});
-}
-
-// "How it works": the training video in six short pieces (scripts/make_instruction_clips.py).
+// Instructions, part 1: the training video in six short pieces (scripts/make_instruction_clips.py), then
+// "What you will do". Written text says what happens and what the participant does; no clock on these pages.
 async function howItWorks() {
   var pages = [
-    ['Welcome to the warehouse', 'A robot delivers boxes here.', 'instr_1_warehouse.mp4'],
-    ['Zones and rooms', 'Each zone has a letter. The robot calls a zone a room.', 'instr_2_dock.mp4'],
-    ['A delivery', 'Watch the robot drive to Room E.', 'instr_3_drive.mp4'],
-    ['Oh no, a box!', 'Sometimes a box blocks the way. The robot tells you.', 'instr_4_blocked.mp4'],
-    ['Around the box', 'The robot goes around the box and finishes the trip.', 'instr_5_finish.mp4'],
-    ['Your trust', 'After each delivery, you tell us how much you trust the robot.', 'instr_6_trust.mp4']
+    ['Welcome to the warehouse', 'This is a big warehouse. A delivery robot carries boxes to different places in it. ' +
+      'On this page you only watch; you do not need to do anything.', 'instr_1_warehouse.mp4'],
+    ['Zones and rooms', 'The warehouse has zones, and each zone has a letter (A to F). The robot calls a zone a ' +
+      '<b>room</b>: “Room C” means Zone C.', 'instr_2_dock.mp4'],
+    ['A delivery', 'Here the robot drives to Room E. In each delivery you will first see which room the box must go ' +
+      'to, and then watch the robot drive.', 'instr_3_drive.mp4'],
+    ['Oh no, a box!', 'Sometimes a box blocks the way. The robot stops and tells you in the speech bubble under ' +
+      'the video.', 'instr_4_blocked.mp4'],
+    ['Around the box', 'The robot then takes another way around the box and finishes the trip.', 'instr_5_finish.mp4'],
+    ['Your trust', 'After each delivery you say how much you trust the robot, from 1 (not at all) to 7 (completely). ' +
+      'There are no right or wrong answers.', 'instr_6_trust.mp4']
   ];
   for (var i = 0; i < pages.length; i++) {
-    setStep(3, i / (pages.length + 1));
-    await videoPage(pages[i][0], pages[i][1], pages[i][2], 'how_' + (i + 1));
+    setProgress(pageOf('Instructions', i + 1, INSTR_TOTAL), partAt('instr', i / INSTR_TOTAL));
+    await videoPage(i + 1, INSTR_TOTAL, pages[i][0], pages[i][1], pages[i][2], 'how_' + (i + 1));
   }
-  setStep(3, 6 / 7);
-  await textPage('<div class="eyebrow">How it works</div><h2>Your job</h2>' +
-    '<ul class="steps big"><li><span class="n">1</span><span>You see which room the box must go to.</span></li>' +
-    '<li><span class="n">2</span><span>You watch the robot try to get there.</span></li>' +
-    '<li><span class="n">3</span><span>You answer a question about the trip.</span></li>' +
-    '<li><span class="n">4</span><span>You say how much you trust the robot.</span></li></ul>', 45, 'your_job');
+  setProgress(pageOf('Instructions', INSTR_GENERAL, INSTR_TOTAL), partAt('instr', (INSTR_GENERAL - 1) / INSTR_TOTAL));
+  await textPage(instrBanner(INSTR_GENERAL, INSTR_TOTAL) + '<h2>What you will do in each delivery</h2>' +
+    '<ul class="steps big"><li><span class="n">1</span><span>A card shows which room the box must go to. ' +
+    '<b>Remember this room.</b></span></li>' +
+    '<li><span class="n">2</span><span>You watch a video of the robot driving. The robot talks to you in the speech ' +
+    'bubble under the video.</span></li>' +
+    '<li><span class="n">3</span><span>You answer a question about the trip, using the buttons under the video. ' +
+    'The next pages show this question for your robot.</span></li>' +
+    '<li><span class="n">4</span><span>You say how much you trust the robot (1 to 7).</span></li></ul>' +
+    '<p class="hint">During the deliveries, a clock at the top of the screen shows how long you have to answer. ' +
+    'Please answer before it runs out.</p>', null, 'your_job');
 }
 
 // ------------------------------------------------------------------ the robots
 // Instructions for this robot's autonomy level only (participants never read about the other level).
+// For the first robot these are pages 8-10 of the instructions; a second robot (within design) gets its own 3 pages.
 async function meetRobot(block, robot, autonomy) {
   var first = block === 1;
-  setStep(STEP_ROBOT + block - 1);
-  await textPage('<div class="eyebrow">' + (NBLOCKS === 2 ? 'Robot ' + block : 'Your robot') + '</div>' +
+  var base = first ? INSTR_GENERAL : 0, total = first ? INSTR_TOTAL : INSTR_ROBOT;
+  var part = first ? 'Instructions' : 'Instructions for Robot 2';
+  var at = function (i) { return first ? partAt('instr', (base + i) / total) : blockAt(block, 0.03 * i); };
+  clockOn = false;
+  hideClock();
+  setProgress(pageOf(part, base + 1, total), at(0));
+  await textPage(instrBanner(base + 1, total) +
     '<h2>' + (first ? 'Meet ' : 'Now meet ') + robot.name + '</h2>' +
     '<div class="robot-card" style="--rc:' + robot.colour + '">' + robotPic(robot, 'big') + '<div>' +
     '<div class="rname">' + robot.name + '</div>' +
-    '<p>' + robot.name + ' is a delivery robot.' + (first ? '' : ' It is a different robot.') + '</p>' +
-    '<p style="margin:0">You will watch ' + robot.name + ' make 3 deliveries.</p></div></div>', 45, 'meet_' + block);
-  setStep(STEP_ROBOT + block - 1, 0.05);
-  await videoPage('How ' + robot.name + ' works', autonomy === 'low'
-    ? 'When the way is blocked, ' + robot.name + ' stops and asks you where to go.'
-    : 'When the way is blocked, ' + robot.name + ' picks a room by itself. Then it tells you what it did.',
+    '<p>' + robot.name + ' is the delivery robot you will work with.' + (first ? '' : ' It is a different robot.') + '</p>' +
+    '<p style="margin:0">You will watch ' + robot.name + ' make 3 deliveries.</p></div></div>', null, 'meet_' + block);
+  setProgress(pageOf(part, base + 2, total), at(1));
+  await videoPage(base + 2, total, 'How ' + robot.name + ' works', autonomy === 'low'
+    ? 'When the way is blocked, ' + robot.name + ' stops and suggests a room. <b>You decide</b>: accept the suggestion, ' +
+      'or send ' + robot.name + ' to the other room.'
+    : 'When the way is blocked, ' + robot.name + ' picks a room <b>by itself</b> and drives there. Then it tells you ' +
+      'what it did, and you say whether it went to the right room.',
     'instr_mode_' + autonomy + '.mp4', 'mode_' + block);
-  setStep(STEP_ROBOT + block - 1, 0.1);
-  await textPage('<div class="eyebrow">' + robot.name + '</div><h2>What you will see</h2>' +
-    '<figure class="instr-shot"><img src="' + IMG_DIR + 'instr_' + robot.name.toLowerCase() + '_' + autonomy + '.jpg" ' +
-    'alt="" onerror="this.parentNode.remove()"><figcaption>' + (autonomy === 'low'
-      ? robot.name + ' asks you. Click <b>Confirm</b> to say yes, or pick the other room.'
-      : robot.name + ' picks a room by itself. After the trip, click <b>Yes</b> or <b>No</b>: did it go to the right room?') +
-    '</figcaption></figure>', 60, 'what_you_see_' + block, 'Start');
+  setProgress(pageOf(part, base + 3, total), at(2));
+  var steps = autonomy === 'low'
+    ? ['Look at the delivery card and remember the room.',
+       'Watch ' + robot.name + ' drive. When the way is blocked, ' + robot.name + ' suggests a room and two buttons appear under the video.',
+       'Click <b>Confirm</b> to accept the suggestion, or <b>Choose Room … instead</b> to send ' + robot.name +
+       ' to the other room. ' + robot.name + ' then drives to the room you picked.',
+       'Say how much you trust ' + robot.name + '.']
+    : ['Look at the delivery card and remember the room.',
+       'Watch ' + robot.name + ' drive. When the way is blocked, ' + robot.name + ' picks a room by itself and finishes the trip.',
+       'After the trip, answer “Did ' + robot.name + ' go to the right room?” with <b>Yes</b> or <b>No</b>.',
+       'Say how much you trust ' + robot.name + '.'];
+  await textPage(instrBanner(base + 3, total) + '<h2>What you will see and do</h2>' +
+    '<div class="instr-split"><figure class="instr-shot"><img src="' + IMG_DIR + 'instr_' + robot.name.toLowerCase() + '_' +
+    autonomy + '.jpg" alt="Example of the delivery screen" onerror="this.parentNode.remove()"></figure>' +
+    '<ol class="steps">' + steps.map(function (s, i) {
+      return '<li><span class="n">' + (i + 1) + '</span><span>' + s + '</span></li>';
+    }).join('') + '</ol></div>' +
+    '<div class="callout"><b>End of the instructions.</b> Click “Start the experiment” to begin the ' +
+    (first ? '' : 'next ') + '3 real deliveries (there is no practice round).</div>',
+    null, 'what_you_see_' + block, 'Start the experiment');
 }
 
 async function targetCard(robot, target, k) {
@@ -577,7 +791,10 @@ async function runTrial(block, robot, autonomy, t, k) {
   var outcome = PATTERN[k];
   var info = t.clips[outcome];
   var robotRoom = info.room;
-  setStep(STEP_ROBOT + block - 1, 0.15 + k * 0.2);
+  // From here on the clock is shown (experiment pages keep their response windows).
+  clockOn = true;
+  setProgress('Experiment — ' + (NBLOCKS === 2 ? 'Robot ' + block + ', ' : '') + 'Delivery ' + (k + 1) + ' of 3',
+              blockAt(block, 0.1 + k * 0.22));
   await targetCard(robot, t.target, k);
   show(playerHTML(robot, robot.name + ' — Deliver to Zone ' + t.target, 'Delivery ' + (k + 1) + ' of 3'));
   var rec = {phase: 'trial', block: block, robot: robot.name, autonomy: autonomy, trial: k + 1,
@@ -616,6 +833,7 @@ async function postBlock(block, robot, autonomy) {
   for (var i = 0; i <= 7; i++) scale.push({value: i, label: i + (i === 0 ? '<br><small>Not at all</small>' : i === 7 ? '<br><small>Very</small>' : '')});
   scale.push({value: 'NA', label: 'Does not fit'});
   var head = function (n) { return '<div class="eyebrow">About ' + robot.name + ' · ' + n + ' of 5</div>'; };
+  var qLabel = function (n) { return pageOf(NBLOCKS === 2 ? 'Questionnaire about Robot ' + block : 'Questionnaire', n, 5); };
   // answers kept per page under the same keys as the summary below (b1_mdmt_reliable, b1_reliance, ...)
   var keep = function (d) { saveQuestions(d, 'b' + block + '_'); };
   var keepMdmt = function (d) {
@@ -625,17 +843,19 @@ async function postBlock(block, robot, autonomy) {
   };
   var cuts = [[0, 6], [6, 12], [12, MDMT_ITEMS.length]];
   for (var p = 0; p < cuts.length; p++) {
-    setStep(STEP_ROBOT + block - 1, 0.8 + p * 0.04);
+    setProgress(qLabel(p + 1), blockAt(block, 0.76 + p * 0.05));
     var items = MDMT_ITEMS.slice(cuts[p][0], cuts[p][1]).map(function (it) { return {id: it.id, text: it.text, hint: it.hint}; });
     Object.assign(data, await formPage(head(p + 1) + '<h2>How well does each word describe ' + robot.name + '?</h2>' +
       '<p class="lead tight">0 = not at all, 7 = very much. If a word does not make sense for a robot, pick "Does not fit".</p>' +
       '<div class="matrix-wrap">' + matrix(items, scale, 'mdmt') + '</div>',
       items.map(function (it) { return it.id; }), 120, 'mdmt_' + block + '_' + (p + 1), keepMdmt));
   }
+  setProgress(qLabel(4), blockAt(block, 0.91));
   Object.assign(data, await formPage(head(4) + '<h2>Next time</h2>' +
     '<div class="q"><p><b>Would you let ' + robot.name + ' make the next delivery on its own, with nobody watching?</b></p>' +
     radioRow('reliance', [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}]) + '</div>',
     ['reliance'], 45, 'reliance_' + block, keep));
+  setProgress(qLabel(5), blockAt(block, 0.96));
   Object.assign(data, await formPage(head(5) + '<h2>Two last questions about ' + robot.name + '</h2>' +
     '<div class="q scale7"><p><b>How often was ' + robot.name + ' right?</b></p>' + radioRow('mc_correct', seven('Never', 'Always')) + '</div>' +
     '<div class="q scale7"><p><b>How much did ' + robot.name + ' decide by itself?</b></p>' + radioRow('mc_autonomy', seven('Not at all', 'Completely')) + '</div>',
@@ -661,7 +881,7 @@ async function runBlock(block) {
 // ------------------------------------------------------------------ the end
 // Open-ended question (required, Dr. Roy's checklist).
 async function openEnded() {
-  setStep(STEP_FINISH);
+  setProgress(pageOf('Finish', 1, 2), partAt('finish', 0));
   var question = NBLOCKS === 2
     ? 'What made you trust or not trust the two robots? Did it matter that one robot asked you and the other decided by itself?'
     : 'What made you trust or not trust ' + robotOf(1).name + '?';
@@ -683,7 +903,7 @@ async function openEnded() {
 }
 
 async function debrief() {
-  setStep(STEP_FINISH, 0.5);
+  setProgress(pageOf('Finish', 2, 2), partAt('finish', 0.5));
   show('<div class="eyebrow">Thank you!</div><h2>About this study</h2>' +
     '<p>We want to learn if a robot\'s <b>mistakes</b>, and how much it <b>decides by itself</b>, change how much people trust it.</p>' +
     '<p>The videos were made on a computer, a bit like a video game. Everything in them was planned ahead of time. ' +
@@ -697,7 +917,7 @@ async function debrief() {
   if (lb) lb.remove();
   var comments = document.querySelector('[name="comments"]').value;
   var allPass = Object.keys(attention).every(function (k) { return attention[k]; });
-  saveQuestions({comments: comments, attention_nars: attention.nars, attention_block1: attention.block1,
+  saveQuestions({comments: comments, attention_block1: attention.block1,
                  attention_block2: attention.block2, attention_all_pass: allPass, pages_over_time: overTime.join(' ')});
   record({phase: 'finish'});
   var pb = document.getElementById('progress-bar');
@@ -726,8 +946,7 @@ async function experiment() {
     return;
   }
   await demographics();
-  await nars();
-  await soundCheck();
+  await avCheck();
   await howItWorks();
   for (var b = 1; b <= NBLOCKS; b++) await runBlock(b);
   await openEnded();

@@ -1,28 +1,8 @@
 /* Questionnaire content (items, scales, attention checks). */
 
-// Negative Attitudes toward Robots Scale (Nomura et al., 2006). 5-point Likert.
-// S1 = interaction situations, S2 = social influence, S3 = emotions in interaction (reverse-scored).
-// Item wording is the published wording; `hint` is a short plain-words meaning shown under hard items.
-var NARS_ITEMS = [
-  {id: 'nars1',  sub: 'S2', text: 'I would feel uneasy if robots really had emotions.', hint: 'uneasy = worried'},
-  {id: 'nars2',  sub: 'S2', text: 'Something bad might happen if robots developed into living beings.', hint: 'if robots came alive'},
-  {id: 'nars3',  sub: 'S3', reverse: true, text: 'I would feel relaxed talking with robots.'},
-  {id: 'nars4',  sub: 'S1', text: 'I would feel uneasy if I was given a job where I had to use robots.'},
-  {id: 'nars5',  sub: 'S3', reverse: true, text: 'If robots had emotions, I would be able to make friends with them.'},
-  {id: 'nars6',  sub: 'S3', reverse: true, text: 'I feel comforted being with robots that have emotions.', hint: 'comforted = calm and safe'},
-  {id: 'nars7',  sub: 'S1', text: 'The word "robot" means nothing to me.'},
-  {id: 'nars_attn', attention: true, expected: 5,
-   text: 'To show that you are reading, please pick "Strongly agree" here.'},
-  {id: 'nars8',  sub: 'S1', text: 'I would feel nervous operating a robot in front of other people.', hint: 'operating = controlling'},
-  {id: 'nars9',  sub: 'S1', text: 'I would hate the idea that robots or artificial intelligences were making judgements about things.',
-   hint: 'if robots or AI made decisions'},
-  {id: 'nars10', sub: 'S1', text: 'I would feel very nervous just standing in front of a robot.'},
-  {id: 'nars11', sub: 'S2', text: 'I feel that if I depend on robots too much, something bad might happen.'},
-  {id: 'nars12', sub: 'S1', text: 'I would feel paranoid talking with a robot.', hint: 'paranoid = very scared something bad will happen'},
-  {id: 'nars13', sub: 'S2', text: 'I am concerned that robots would be a bad influence on children.', hint: 'concerned = worried'},
-  {id: 'nars14', sub: 'S2', text: 'I feel that in the future society will be dominated by robots.', hint: 'robots will run the world'}
-];
-var NARS_SCALE = ['Strongly disagree', 'Disagree', 'Undecided', 'Agree', 'Strongly agree']; // coded 1-5
+// NARS (Nomura et al., 2006) was removed after Dr. Roy's review (2026-11-04): its items are about social robots,
+// and this study uses a delivery robot. Robot experience is now asked in task.js (demographics). The old items
+// are in the git history (tag v2-after-review).
 
 // Multi-Dimensional Measure of Trust v1 (Ullman & Malle, 2018/2019). 0-7 + "Does not fit".
 // Performance trust = Reliable + Capable, Moral trust = Ethical + Sincere.

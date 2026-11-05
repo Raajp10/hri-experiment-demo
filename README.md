@@ -19,4 +19,10 @@ Participant link: https://raajp10.github.io/hri-experiment-demo/ (starts on the 
   Then `analysis/jasp_export.py --trialdata study_data/trialdata.csv` (in the psiTurk project folder).
 - Researcher walk-through: `index.html?tools=1` (add `&cond=0..3` for a group): video-speed bar, "debug" IDs that
   are not counted and are left out of the downloads.
+- Before the experiment (second review, 2026-11-04): about you (2 pages; age checked as it is typed, 18–80), an
+  audio/video check (the clip shows one word and a voice says another; the participant types both, clips made by
+  `scripts/make_av_check.py`), then 10 instruction pages marked "Instructions · not a trial" with no clock. The clock
+  appears from the first delivery on. The header names the part and page, e.g. "Instructions — Page 2 of 10".
+  NARS was removed (social-robot items); robot experience is asked on an experience scale. Saved as
+  `onboarding_version` in questiondata.
 - Earlier versions: git tags `v1-first-demo`, `v2-after-review`.
