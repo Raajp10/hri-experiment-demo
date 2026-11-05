@@ -60,6 +60,7 @@ var $c = function () { return document.getElementById('container-exp'); };
 function show(html) {
   if (leaving) return;
   clearMarksOnAnswer();
+  $c().classList.remove('wide');
   $c().innerHTML = html;
   window.scrollTo(0, 0);
   psiTurk.saveData();
@@ -78,6 +79,40 @@ function clearMarksOnAnswer() {
       }
     });
   });
+}
+
+// ------------------------------------------------------------------ full screen
+// The study runs in the browser's full screen: it switches on with the participant's first click on a button
+// (browsers only allow it after a click), and the "Full screen" button in the header switches it on or off.
+function fsElement() { return document.fullscreenElement || document.webkitFullscreenElement; }
+function enterFullscreen() {
+  var el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!f || fsElement()) return;
+  try { var p = f.call(el); if (p && p.catch) p.catch(function () {}); } catch (e) { /* not allowed: stay in the window */ }
+}
+function exitFullscreen() {
+  var f = document.exitFullscreen || document.webkitExitFullscreen;
+  if (f && fsElement()) { try { var p = f.call(document); if (p && p.catch) p.catch(function () {}); } catch (e) { /* ignore */ } }
+}
+function fullscreenButton() {
+  var head = document.querySelector('.app-head .inner');
+  var can = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+  if (!head || !can || document.getElementById('fs')) return;
+  var b = document.createElement('button');
+  b.id = 'fs';
+  b.type = 'button';
+  b.className = 'leave fs';
+  var label = function () { b.textContent = fsElement() ? 'Exit full screen' : 'Full screen'; };
+  b.onclick = function () { if (fsElement()) exitFullscreen(); else enterFullscreen(); };
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (ev) { document.addEventListener(ev, label); });
+  label();
+  head.appendChild(b);
+  // first click on any button in the study turns full screen on
+  document.addEventListener('click', function first(e) {
+    if (!e.target.closest || !e.target.closest('#container-exp .btn')) return;
+    document.removeEventListener('click', first, true);
+    enterFullscreen();
+  }, true);
 }
 
 // ------------------------------------------------------------------ leave the study (any page)
@@ -114,7 +149,7 @@ function leaveStudy() {
   record({phase: 'withdrawn'});
   psiTurk.recordUnstructuredData('withdrawn', true);
   leaving = true;
-  ['leave-box', 'leave', 'timer'].forEach(function (id) { var el = document.getElementById(id); if (el) el.remove(); });
+  ['leave-box', 'leave', 'fs', 'timer'].forEach(function (id) { var el = document.getElementById(id); if (el) el.remove(); });
   var pb = document.getElementById('progress-bar');
   if (pb) pb.style.width = '0';
   // "You have left" only once the server has the withdrawal; otherwise offer to try again.
@@ -436,9 +471,10 @@ async function formPage(html, names, seconds, page, keep) {
   return answers;
 }
 
-// A page with only text (and pictures) and a button.
-async function textPage(html, seconds, page, label) {
+// A page with only text (and pictures) and a button. `wide` uses the wide page (instruction pages with pictures).
+async function textPage(html, seconds, page, label, wide) {
   show(html + '<div class="actions"><button class="btn big" id="go">' + (label || 'Next') + '</button></div>');
+  if (wide) $c().classList.add('wide');
   pageClock(seconds, page);
   await clicked('#go');
 }
@@ -449,12 +485,18 @@ function instrBanner(n, total) {
     '<span>Page ' + n + ' of ' + total + '. Read and watch. Nothing on this page is scored.</span></div>';
 }
 
-// An instruction page with a heading, a few sentences and a video (no clock). While the video plays, the robot
-// bar says that "Next" comes at the end; then "Watch again" and "Next" appear there.
-async function videoPage(n, total, title, text, clip, page, robot) {
+// An instruction page (no clock): the heading and short points on the left, a large video on the right (stacked
+// on narrow windows). `points` is a list of short sentences. While the video plays, the robot bar says that "Next"
+// comes at the end; then "Watch again" and "Next" appear there.
+function pointsHTML(points) {
+  return '<ul class="instr-points">' + points.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul>';
+}
+async function videoPage(n, total, title, points, clip, page, robot) {
   hideClock();
-  show(instrBanner(n, total) + '<h2>' + title + '</h2><p class="lead tight">' + text + '</p>' +
-    playerHTML(robot || EXAMPLE, null, '', 'short instr'));
+  show(instrBanner(n, total) + '<div class="instr-grid"><div class="instr-text"><h2>' + title + '</h2>' +
+    pointsHTML(points) + '</div><div class="instr-media">' + playerHTML(robot || EXAMPLE, null, '', 'instr') +
+    '</div></div>');
+  $c().classList.add('wide');
   var bb = document.getElementById('bar-buttons');
   bb.innerHTML = '<span class="bar-wait">“Next” appears when the video ends</span>';
   var ms = await playClip(clip), replays = 0;
@@ -481,6 +523,8 @@ var ONBOARDING_VERSION = 'v3-2026-11-04';
 async function aboutYouPage1() {
   setProgress(pageOf('About you', 1, 2), partAt('about', 0));
   show('<div class="eyebrow">About you</div><h2>A few questions about you</h2>' +
+    '<p class="hint fs-note">The study switches to full screen when you click “Next”. You can leave full screen at any ' +
+    'time with the button at the top or the Esc key.</p>' +
     '<div class="fields">' +
     '<div class="q field" data-item="age"><label for="f-age">How old are you?</label>' +
     '<input type="text" id="f-age" name="age" data-check="age" inputmode="numeric" autocomplete="off" maxlength="3" ' +
@@ -663,17 +707,17 @@ async function avCheck() {
 // "What you will do". Written text says what happens and what the participant does; no clock on these pages.
 async function howItWorks() {
   var pages = [
-    ['Welcome to the warehouse', 'This is a big warehouse. A delivery robot carries boxes to different places in it. ' +
-      'On this page you only watch; you do not need to do anything.', 'instr_1_warehouse.mp4'],
-    ['Zones and rooms', 'The warehouse has zones, and each zone has a letter (A to F). The robot calls a zone a ' +
-      '<b>room</b>: “Room C” means Zone C.', 'instr_2_dock.mp4'],
-    ['A delivery', 'Here the robot drives to Room E. In each delivery you will first see which room the box must go ' +
-      'to, and then watch the robot drive.', 'instr_3_drive.mp4'],
-    ['Oh no, a box!', 'Sometimes a box blocks the way. The robot stops and tells you in the speech bubble under ' +
-      'the video.', 'instr_4_blocked.mp4'],
-    ['Around the box', 'The robot then takes another way around the box and finishes the trip.', 'instr_5_finish.mp4'],
-    ['Your trust', 'After each delivery you say how much you trust the robot, from 1 (not at all) to 7 (completely). ' +
-      'There are no right or wrong answers.', 'instr_6_trust.mp4']
+    ['Welcome to the warehouse', ['This is a big warehouse.', 'A delivery robot carries boxes to different places in it.',
+      'Just watch. You do not need to do anything on this page.'], 'instr_1_warehouse.mp4'],
+    ['Zones and rooms', ['The warehouse has six zones, A to F.',
+      'The robot calls a zone a <b>room</b>: “Room C” means Zone C.', 'The robot starts at its dock.'], 'instr_2_dock.mp4'],
+    ['A delivery', ['Here the robot drives to Room E.', 'In each delivery, you first see which room the box must go to.',
+      'Then you watch the robot drive there.'], 'instr_3_drive.mp4'],
+    ['Oh no, a box!', ['Sometimes a box blocks the way.',
+      'The robot stops and tells you in the <b>speech bubble</b> under the video.'], 'instr_4_blocked.mp4'],
+    ['Around the box', ['The robot goes around the box another way.', 'Then it finishes the trip.'], 'instr_5_finish.mp4'],
+    ['Your trust', ['After each delivery, you say how much you <b>trust</b> the robot.',
+      'You answer from 1 (not at all) to 7 (completely).', 'There are no right or wrong answers.'], 'instr_6_trust.mp4']
   ];
   for (var i = 0; i < pages.length; i++) {
     setProgress(pageOf('Instructions', i + 1, INSTR_TOTAL), partAt('instr', i / INSTR_TOTAL));
@@ -693,6 +737,20 @@ async function howItWorks() {
 }
 
 // ------------------------------------------------------------------ the robots
+// "How <robot> works" clip. The mode clips come from the training video (plain white example robot); for Nova there
+// is a copy with Nova's blue top (scripts/make_nova_mode_clips.py), so the robot looks like Nova in the deliveries.
+// It uses the cues of the original clip, and the robot's bubble shows the same message as in the deliveries.
+function modeClip(robot, autonomy) {
+  var base = 'instr_mode_' + autonomy + '.mp4';
+  if (robot.name !== 'Nova' || typeof CLIP_CUES === 'undefined' || !CLIP_CUES[base]) return base;
+  var name = 'instr_mode_' + autonomy + '_nova.mp4';
+  if (!CLIP_CUES[name]) {
+    CLIP_CUES[name] = JSON.parse(JSON.stringify(CLIP_CUES[base]));
+    CLIP_CUES[name].cues.forEach(function (c) { c.message = 'Path blocked, need to reroute.'; });
+  }
+  return name;
+}
+
 // Instructions for this robot's autonomy level only (participants never read about the other level).
 // For the first robot these are pages 8-10 of the instructions; a second robot (within design) gets its own 3 pages.
 async function meetRobot(block, robot, autonomy) {
@@ -710,12 +768,14 @@ async function meetRobot(block, robot, autonomy) {
     '<p>' + robot.name + ' is the delivery robot you will work with.' + (first ? '' : ' It is a different robot.') + '</p>' +
     '<p style="margin:0">You will watch ' + robot.name + ' make 3 deliveries.</p></div></div>', null, 'meet_' + block);
   setProgress(pageOf(part, base + 2, total), at(1));
-  await videoPage(base + 2, total, 'How ' + robot.name + ' works', autonomy === 'low'
-    ? 'When the way is blocked, ' + robot.name + ' stops and suggests a room. <b>You decide</b>: accept the suggestion, ' +
-      'or send ' + robot.name + ' to the other room.'
-    : 'When the way is blocked, ' + robot.name + ' picks a room <b>by itself</b> and drives there. Then it tells you ' +
-      'what it did, and you say whether it went to the right room.',
-    'instr_mode_' + autonomy + '.mp4', 'mode_' + block);
+  var R = robot.name;
+  await videoPage(base + 2, total, 'How ' + R + ' works', autonomy === 'low'
+    ? ['In this video, a box blocks ' + R + '’s way, so ' + R + ' stops.', R + ' then suggests a room and asks you.',
+       '<b>You decide</b>: accept the suggestion, or send ' + R + ' to the other room.']
+    : ['In this video, a box blocks ' + R + '’s way, so ' + R + ' stops.',
+       R + ' then picks a room <b>by itself</b> and drives there.',
+       'After the trip, you say whether ' + R + ' went to the right room.'],
+    modeClip(robot, autonomy), 'mode_' + block, robot);
   setProgress(pageOf(part, base + 3, total), at(2));
   var steps = autonomy === 'low'
     ? ['Look at the delivery card and remember the room.',
@@ -735,7 +795,7 @@ async function meetRobot(block, robot, autonomy) {
     }).join('') + '</ol></div>' +
     '<div class="callout"><b>End of the instructions.</b> Click “Start the experiment” to begin the ' +
     (first ? '' : 'next ') + '3 real deliveries (there is no practice round).</div>',
-    null, 'what_you_see_' + block, 'Start the experiment');
+    null, 'what_you_see_' + block, 'Start the experiment', true);
 }
 
 async function targetCard(robot, target, k) {
@@ -938,6 +998,7 @@ async function debrief() {
 }
 
 async function experiment() {
+  fullscreenButton();
   leaveButton();
   record({phase: 'start', user_agent: navigator.userAgent});
   if (START === 'block1' || (START === 'block2' && NBLOCKS === 2)) {

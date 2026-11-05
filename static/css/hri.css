@@ -324,7 +324,7 @@ input[type=text]:disabled { background: #f1f3f7; }
 .bar-wait { color: #b9c3d9; font-size: 14px; align-self: center; white-space: nowrap; }
 .instr-split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .instr-split .instr-shot { margin: 0; max-width: 100%; }
-.instr-split .instr-shot img { max-height: calc(100vh - 430px); }
+.instr-split .instr-shot img { max-height: calc(100vh - 400px); }
 .instr-split .steps { margin: 0; gap: 8px; }
 .instr-split .steps li { padding: 8px 12px; font-size: 15.5px; line-height: 1.35; }
 .callout { margin: 12px 0 0; padding: 10px 16px; }
@@ -378,4 +378,43 @@ table.matrix.experience thead th { position: static; }
   table.matrix.experience label { min-height: 30px; }
   table.matrix.experience td.item .gloss { display: inline; margin-left: 6px; }
   .radio-row .opt { padding: 7px 10px; }
+}
+
+/* ---------------------------------------------------------------- use the whole screen; easy-to-read instructions
+   (after the professor's look at the live site, 2026-11-05) */
+/* wider page: up to 1400 px; instruction video pages up to 1800 px */
+.app-head .inner { max-width: none; padding-left: 32px; padding-right: 32px; }
+#container-exp { max-width: min(1400px, calc(100% - 32px)); }
+#container-exp.wide { max-width: min(1800px, calc(100% - 32px)); }
+.app-head .leave.fs { margin-left: 0; }
+/* Bootstrap's .lead is thin (300) and grey: make all lead text normal weight and dark */
+.lead, .consent .lead { font-weight: 400; color: var(--ink); }
+.fs-note { margin: -2px 0 12px; }
+/* consent page: keep text and picture together in the middle of the wider page */
+#consent.consent { justify-content: center; gap: 56px; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+/* instruction video pages: heading + short points on the left, large video on the right */
+.instr-grid { display: grid; grid-template-columns: minmax(300px, 30%) minmax(0, 1fr); gap: 32px; align-items: center; }
+.instr-text h2 { font-size: 30px; margin-bottom: 14px; }
+.instr-points { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.instr-points li { position: relative; padding-left: 28px; font-size: 21px; line-height: 1.45; color: var(--ink); }
+.instr-points li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--blue); }
+/* video as large as the screen height allows (header, banner, robot bar and margins take about 270 px) */
+.instr-media .player.instr { width: min(100%, calc((100vh - 270px) * 16 / 9)); margin: 0 auto; }
+/* text pages of the instructions: bigger, darker text too */
+.steps.big li { font-size: 20px; color: var(--ink); }
+.instr-split .steps li { font-size: 18px; color: var(--ink); }
+.robot-card p { font-size: 19px; }
+@media (max-width: 1100px) {
+  .instr-grid { grid-template-columns: 1fr; gap: 12px; }
+  .instr-text h2 { font-size: 24px; margin-bottom: 6px; }
+  .instr-points { gap: 4px; }
+  .instr-points li { font-size: 18px; }
+  .instr-media .player.instr { width: min(100%, calc((100vh - 420px) * 16 / 9)); }
+}
+@media (max-height: 700px) {
+  .instr-points li { font-size: 18px; }
+  .instr-text h2 { font-size: 24px; }
+  .instr-media .player.instr { width: min(100%, calc((100vh - 230px) * 16 / 9)); }
 }

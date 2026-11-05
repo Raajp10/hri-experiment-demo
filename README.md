@@ -25,4 +25,7 @@ Participant link: https://raajp10.github.io/hri-experiment-demo/ (starts on the 
   appears from the first delivery on. The header names the part and page, e.g. "Instructions — Page 2 of 10".
   NARS was removed (social-robot items); robot experience is asked on an experience scale. Saved as
   `onboarding_version` in questiondata.
+- The study switches the browser to full screen at the participant's first click ("Full screen" button in the
+  header to switch it off/on). Instruction pages show short points beside a large video. "How Nova works" uses
+  `instr_mode_*_nova.mp4`: the mode clips with the robot's top painted Nova blue (`scripts/make_nova_mode_clips.py`).
 - Earlier versions: git tags `v1-first-demo`, `v2-after-review`.
