@@ -418,3 +418,26 @@ table.matrix.experience thead th { position: static; }
   .instr-text h2 { font-size: 24px; }
   .instr-media .player.instr { width: min(100%, calc((100vh - 230px) * 16 / 9)); }
 }
+
+/* ---------------------------------------------------------------- fluid: every page uses the screen width
+   (16 px gutter on each side); text and pictures on the consent page grow with the screen */
+.app-head .inner { max-width: none; }
+#container-exp, #container-exp.wide { max-width: none; margin-left: 16px; margin-right: 16px; }
+#consent.consent { max-width: none; justify-content: space-between; gap: 4vw; padding: 0.5vw 2vw; }
+.consent-main { max-width: none; flex: 1 1 0; }
+.consent h2 { font-size: clamp(24px, 2vw, 40px); }
+.consent .lead { font-size: clamp(18px, 1.35vw, 27px); }
+.facts li { font-size: clamp(16px, 1.15vw, 23px); }
+.facts .ic { flex-basis: clamp(30px, 2vw, 40px); height: clamp(30px, 2vw, 40px); }
+.consent .agree-note { font-size: clamp(16px, 1.1vw, 21px); }
+.consent-pic { flex: 0 0 clamp(210px, 26vw, 520px); width: clamp(210px, 26vw, 520px); height: clamp(210px, 26vw, 520px);
+  max-height: calc(100vh - 160px); max-width: calc(100vh - 160px); }
+/* about you: question and answer columns share the width */
+.fields { max-width: min(1200px, 100%); }
+.fields .q.field { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+/* audio/video check: video as large as the height allows */
+.av-wrap { grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr); }
+.av-screen { width: 100%; max-width: calc((100vh - 300px) * 16 / 9); }
+@media (max-width: 1000px) { .fields .q.field { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { #consent.consent { padding: 0; } }
+.consent .btn { font-size: clamp(16.5px, 1.2vw, 23px); padding: clamp(11px, 0.8vw, 16px) clamp(24px, 1.8vw, 36px); }
