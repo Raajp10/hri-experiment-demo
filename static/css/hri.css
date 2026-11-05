@@ -441,3 +441,103 @@ table.matrix.experience thead th { position: static; }
 @media (max-width: 1000px) { .fields .q.field { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { #consent.consent { padding: 0; } }
 .consent .btn { font-size: clamp(16.5px, 1.2vw, 23px); padding: clamp(11px, 0.8vw, 16px) clamp(24px, 1.8vw, 36px); }
+
+/* ---------------------------------------------------------------- the page card fills the window height and its
+   content sits in the middle; text grows with the screen (width and height) */
+body { min-height: 100vh; display: flex; flex-direction: column; }
+#container-exp { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
+#container-exp > * { flex-shrink: 0; }
+#consent.consent { align-items: center; }
+.consent h2 { font-size: clamp(24px, min(2.3vw, 4.2vh), 48px); margin-bottom: clamp(8px, 1.5vh, 20px); }
+.consent .lead { font-size: clamp(18px, min(1.5vw, 2.7vh), 31px); margin-bottom: clamp(8px, 1.6vh, 22px); }
+.facts { gap: clamp(6px, 1.1vh, 14px); margin: clamp(10px, 2vh, 28px) 0; }
+.facts li { font-size: clamp(16px, min(1.25vw, 2.3vh), 26px); padding: clamp(6px, 1.2vh, 16px) clamp(12px, 1vw, 20px); }
+.facts .ic { flex-basis: clamp(30px, min(2.2vw, 4vh), 46px); height: clamp(30px, min(2.2vw, 4vh), 46px); }
+.consent .agree-note { font-size: clamp(16px, min(1.2vw, 2.2vh), 24px); }
+.consent .btn { font-size: clamp(16.5px, min(1.3vw, 2.4vh), 26px); padding: clamp(10px, 1.4vh, 18px) clamp(24px, 2vw, 40px); }
+.consent-pic { flex: 0 0 clamp(210px, min(28vw, 52vh), 620px); width: clamp(210px, min(28vw, 52vh), 620px);
+  height: clamp(210px, min(28vw, 52vh), 620px); max-width: none; max-height: none; margin-top: 0; }
+/* instruction pages: text grows with the screen too */
+.instr-text h2 { font-size: clamp(24px, min(2vw, 3.8vh), 42px); }
+.instr-points li { font-size: clamp(18px, min(1.35vw, 2.4vh), 29px); }
+/* consent page: larger text so the content fills most of the card's height */
+.consent h2 { font-size: clamp(24px, min(2.7vw, 5vh), 54px); }
+.consent .lead { font-size: clamp(18px, min(1.75vw, 3.1vh), 34px); }
+.facts li { font-size: clamp(16px, min(1.45vw, 2.7vh), 29px); padding: clamp(6px, 1.7vh, 22px) clamp(12px, 1.2vw, 24px); }
+.facts { gap: clamp(6px, 1.4vh, 18px); margin: clamp(10px, 2.6vh, 34px) 0; }
+.consent .agree-note { font-size: clamp(16px, min(1.35vw, 2.5vh), 27px); }
+.consent .btn { font-size: clamp(16.5px, min(1.5vw, 2.8vh), 30px); padding: clamp(10px, 1.7vh, 22px) clamp(24px, 2.3vw, 46px); }
+.consent-pic { flex-basis: clamp(210px, min(30vw, 60vh), 700px); width: clamp(210px, min(30vw, 60vh), 700px);
+  height: clamp(210px, min(30vw, 60vh), 700px); }
+@media (max-width: 1500px) {
+  .consent-pic { flex-basis: clamp(200px, min(24vw, 46vh), 560px); width: clamp(200px, min(24vw, 46vh), 560px);
+    height: clamp(200px, min(24vw, 46vh), 560px); }
+  .facts li { padding-top: clamp(5px, 1.3vh, 18px); padding-bottom: clamp(5px, 1.3vh, 18px); }
+}
+/* instruction video: use the height that is left (header, margins, banner and robot bar take about 255 px) */
+.instr-media .player.instr { width: min(100%, calc((100vh - 255px) * 16 / 9)); }
+/* question text grows with the screen */
+.q > p, .q.field > label, table.matrix td.item { font-size: clamp(16px, min(1.15vw, 2.1vh), 23px); }
+.radio-row .opt { font-size: clamp(15.5px, min(1.05vw, 1.9vh), 21px); }
+.fields { max-width: min(1400px, 100%); }
+
+/* ---------------------------------------------------------------- text follows the screen size (--s from
+   static/js/scale.js: 1 on laptop screens, up to 1.6 on large screens) */
+body { font-size: calc(17px * var(--s, 1)); }
+h2 { font-size: calc(24px * var(--s, 1)); }
+.lead { font-size: calc(18px * var(--s, 1)); }
+.hint { font-size: calc(15px * var(--s, 1)); }
+.eyebrow { font-size: calc(12.5px * var(--s, 1)); }
+.err { font-size: calc(16.5px * var(--s, 1)); }
+.field-msg { font-size: calc(15px * var(--s, 1)); }
+.app-head .brand { font-size: calc(16px * var(--s, 1)); }
+.app-head .brand-pic { width: calc(30px * var(--s, 1)); height: calc(30px * var(--s, 1)); }
+.app-head .step { font-size: calc(14px * var(--s, 1)); }
+.app-head .leave, .app-head .timer { font-size: calc(13.5px * var(--s, 1)); }
+.btn { font-size: calc(16.5px * var(--s, 1)); }
+.btn.big { font-size: calc(18px * var(--s, 1)); padding: calc(13px * var(--s, 1)) calc(30px * var(--s, 1)); }
+input[type=number], input[type=text], select, textarea { font-size: calc(16px * var(--s, 1)); }
+/* questions */
+.q > p, .q.field > label, table.matrix td.item { font-size: calc(16.5px * var(--s, 1)); }
+.sub-field > label, .q-hint { font-size: calc(14.5px * var(--s, 1)); }
+.radio-row .opt { font-size: calc(15.5px * var(--s, 1)); }
+.radio-row .opt small { font-size: calc(12px * var(--s, 1)); }
+table.matrix thead th { font-size: calc(12.5px * var(--s, 1)); }
+table.matrix td.item .gloss { font-size: calc(12.5px * var(--s, 1)); }
+/* instructions */
+.instr-banner { font-size: calc(15px * var(--s, 1)); }
+.instr-banner .tag { font-size: calc(12.5px * var(--s, 1)); }
+.instr-text h2 { font-size: calc(28px * var(--s, 1)); }
+.instr-points li { font-size: calc(19px * var(--s, 1)); }
+.steps li { font-size: calc(17px * var(--s, 1)); }
+.steps.big li { font-size: calc(20px * var(--s, 1)); }
+.instr-split .steps li { font-size: calc(17px * var(--s, 1)); }
+.steps .n { flex-basis: calc(28px * var(--s, 1)); height: calc(28px * var(--s, 1)); font-size: calc(14px * var(--s, 1)); }
+.callout { font-size: calc(17px * var(--s, 1)); }
+.robot-card p { font-size: calc(19px * var(--s, 1)); }
+.robot-card .rname { font-size: calc(30px * var(--s, 1)); }
+/* video player text */
+.player .subtitle { font-size: calc(18px * var(--s, 1)); }
+.bubble { font-size: calc(19px * var(--s, 1)); }
+.bar-q { font-size: calc(17px * var(--s, 1)); }
+.bar-wait { font-size: calc(14px * var(--s, 1)); }
+.robot-name { font-size: calc(12px * var(--s, 1)); }
+/* delivery card */
+.target-card { font-size: calc(34px * var(--s, 1)); }
+.order .sub, .trial-title { font-size: calc(16px * var(--s, 1)); }
+@media (max-height: 700px) {
+  h2 { font-size: calc(22px * var(--s, 1)); }
+  .lead { font-size: calc(16.5px * var(--s, 1)); }
+  .instr-text h2 { font-size: calc(24px * var(--s, 1)); }
+  .instr-points li { font-size: calc(18px * var(--s, 1)); }
+}
+
+/* consent picture: a sharp frame from the videos (840 x 620, Nova on its dock), shown as a rounded rectangle and
+   never stretched far beyond its own size */
+.consent-pic, .consent-pic[src] { border-radius: 18px; object-fit: cover; aspect-ratio: 840 / 620; height: auto;
+  flex: 0 0 auto; width: clamp(260px, min(34vw, 66vh), 640px); max-width: none; max-height: none; margin-top: 0;
+  box-shadow: 0 0 0 6px var(--blue-soft), 0 12px 30px rgba(20, 33, 61, .18); }
+@media (max-width: 1500px) { .consent-pic, .consent-pic[src] { width: clamp(240px, min(30vw, 58vh), 560px); height: auto; } }
+@media (max-width: 1500px) { .consent-pic, .consent-pic[src] { width: clamp(240px, min(27vw, 50vh), 520px); } }
+/* both consent buttons the same size */
+.consent .btn, .consent .btn.big { font-size: clamp(16.5px, min(1.5vw, 2.8vh), 30px); padding: clamp(10px, 1.7vh, 22px) clamp(24px, 2.3vw, 46px); }
