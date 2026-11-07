@@ -652,12 +652,14 @@ async function avCheck() {
   function load(k) {
     item = AV_CHECKS[k % AV_CHECKS.length];
     v.src = VIDEO_DIR + item.clip;
+    v.classList.remove('shown');   // the word stays hidden until the video plays
     play.textContent = '▶ Play';
     play.hidden = false;
     seen.value = heard.value = '';
     seen.disabled = heard.disabled = go.disabled = true;
     document.getElementById('av-hint').textContent = 'Play the video first. The boxes open when it ends.';
   }
+  v.addEventListener('playing', function () { v.classList.add('shown'); });
   play.onclick = function () {
     plays++;
     play.hidden = true;

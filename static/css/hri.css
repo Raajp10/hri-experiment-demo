@@ -541,3 +541,6 @@ table.matrix td.item .gloss { font-size: calc(12.5px * var(--s, 1)); }
 @media (max-width: 1500px) { .consent-pic, .consent-pic[src] { width: clamp(240px, min(27vw, 50vh), 520px); } }
 /* both consent buttons the same size */
 .consent .btn, .consent .btn.big { font-size: clamp(16.5px, min(1.5vw, 2.8vh), 30px); padding: clamp(10px, 1.7vh, 22px) clamp(24px, 2.3vw, 46px); }
+/* audio/video check: the video (and its word) is hidden until it plays, so the word cannot be read without playing */
+.av-screen video { visibility: hidden; }
+.av-screen video.shown { visibility: visible; }
