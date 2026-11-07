@@ -887,7 +887,7 @@ async function postBlock(block, robot, autonomy) {
   var t0 = performance.now(), data = {};
   var scale = [];
   for (var i = 0; i <= 7; i++) scale.push({value: i, label: i + (i === 0 ? '<br><small>Not at all</small>' : i === 7 ? '<br><small>Very</small>' : '')});
-  scale.push({value: 'NA', label: 'Does not fit'});
+  scale.push({value: 'NA', label: 'Does Not Fit'});
   var head = function (n) { return '<div class="eyebrow">About ' + robot.name + ' · ' + n + ' of 4</div>'; };
   var qLabel = function (n) { return pageOf(NBLOCKS === 2 ? 'Questionnaire about Robot ' + block : 'Questionnaire', n, 4); };
   // answers kept per page under the same keys as the summary below (b1_mdmt_reliable, b1_reliance, ...)
@@ -897,12 +897,14 @@ async function postBlock(block, robot, autonomy) {
     Object.keys(d).forEach(function (k) { o[k.indexOf('mdmt_') === 0 ? k : 'mdmt_' + k] = d[k]; });
     keep(o);
   };
-  var cuts = [[0, 5], [5, MDMT_CAPACITY.length]];
+  var cuts = [[0, 4], [4, MDMT_CAPACITY.length]];   // 4 items, then 4 items + attention check
   for (var p = 0; p < cuts.length; p++) {
     setProgress(qLabel(p + 1), blockAt(block, 0.76 + p * 0.06));
     var items = MDMT_CAPACITY.slice(cuts[p][0], cuts[p][1]).map(function (it) { return {id: it.id, text: it.text, hint: it.hint}; });
+    // instruction text of the MDMT v1 form
     Object.assign(data, await formPage(head(p + 1) + '<h2>How well does each word describe ' + robot.name + '?</h2>' +
-      '<p class="lead tight">0 = not at all, 7 = very much. If a word does not make sense for a robot, pick "Does not fit".</p>' +
+      '<p class="lead tight">Please rate the robot using the scale from 0 (Not at all) to 7 (Very). If a particular item ' +
+      'does not seem to fit the robot in the situation, please select the option that says “Does Not Fit.”</p>' +
       '<div class="matrix-wrap">' + matrix(items, scale, 'mdmt') + '</div>',
       items.map(function (it) { return it.id; }), 120, 'mdmt_' + block + '_' + (p + 1), keepMdmt));
   }
