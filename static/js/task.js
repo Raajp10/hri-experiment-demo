@@ -11,10 +11,11 @@
  *
  * Procedure (revised after Dr. Roy's second review, 2026-11-04): consent (first page) -> about you (2 pages:
  * age/gender/education, then robot and game experience; NARS removed) -> audio/video check (type the word seen
- * and the word heard) -> instructions (10 pages, each marked "Instructions · not a trial", no clock: 6 short
+ * and the word heard) -> instructions (9 pages, each marked "Instructions · not a trial", no clock: 5 short
  * pages with a piece of the training video, "what you will do", then per robot: meet the robot, how it works
- * (its own mode only), what you will see) -> per robot: 3 deliveries (target, video + decision, trust),
- * questionnaire (5 pages) -> open-ended question -> debrief.
+ * (its own mode only), what you will see) -> per robot: 3 deliveries (target, video + decision; the decision is
+ * scored as situational awareness), questionnaire (4 pages: MDMT Capacity Trust on 2, reliance, checks) ->
+ * open-ended question -> debrief. (No trust question after each delivery since 2026-11-07.)
  * No practice trial. Every page fits on the screen without scrolling.
  *
  * Data: experimental records go to trialdata via record(); all pre- and post-experiment questions go to
@@ -174,7 +175,7 @@ function leaveStudy() {
 // The label names the part of the study and the page within that part, e.g. "Instructions — Page 2 of 10" or
 // "Experiment — Delivery 1 of 3" ("Step 4 of 6" was unclear, Dr. Roy's review 2026-11-04). The thin bar under
 // the header shows progress through the whole study and never moves back.
-var INSTR_GENERAL = 7;                          // 6 video pages + "What you will do"
+var INSTR_GENERAL = 6;                          // 5 video pages + "What you will do"
 var INSTR_ROBOT = 3;                            // meet the robot, how it works, what you will see
 var INSTR_TOTAL = INSTR_GENERAL + INSTR_ROBOT;  // instruction pages before the first delivery
 // share of the bar for each part of the study
@@ -331,6 +332,7 @@ function playClip(name) {
     var bar = document.querySelector('.robot-bar');
     var shown = -1;
     function updateCues() {
+      if (!v.isConnected) return;   // the page has moved on; a late event from the old video does nothing
       var tt = v.currentTime;
       videoCountdown(v);
       if (bar) bar.classList.toggle('speaking', !v.ended && voice.some(function (s) { return tt >= s.t && tt < s.t + s.dur; }));
@@ -517,6 +519,10 @@ async function videoPage(n, total, title, points, clip, page, robot) {
 // any kind on an experience scale (was: "How much have you used or talked to robots?", Never ... Expert);
 // mobile_robot_experience added; gender_self / education_other added; audio/video check replaces the sound check.
 var ONBOARDING_VERSION = 'v3-2026-11-04';
+// Measures version (questiondata 'measures_version'). v4 (Dr. Roy, 2026-11-07): no trust question after each delivery;
+// the answer after each delivery is scored as situational awareness (trialdata sa_correct, questiondata b1_sa_*);
+// trust = MDMT Capacity Trust after the 3 deliveries (b1_capacity_trust). Earlier sessions: per-delivery trust + full MDMT.
+var MEASURES_VERSION = 'v4-2026-11-07';
 
 // About you, page 1: one column, every question with its label above the answer box. The age is checked while
 // it is typed; "Prefer to self-describe" and "Other" open a text box.
@@ -589,7 +595,7 @@ var EXPERIENCE_SCALE = [{value: 1, label: 'No experience'}, {value: 2, label: 'S
   {value: 5, label: 'Extensive experience'}];
 
 async function demographics() {
-  var t0 = performance.now(), data = {onboarding_version: ONBOARDING_VERSION};
+  var t0 = performance.now(), data = {onboarding_version: ONBOARDING_VERSION, measures_version: MEASURES_VERSION};
   Object.assign(data, await aboutYouPage1());
   saveQuestions(data);
   setProgress(pageOf('About you', 2, 2), partAt('about', 0.5));
@@ -715,10 +721,8 @@ async function howItWorks() {
       'Then you watch the robot drive there.'], 'instr_3_drive.mp4'],
     ['Oh no, a box!', ['Sometimes a box blocks the way.',
       'The robot stops and tells you in the <b>speech bubble</b> under the video.'], 'instr_4_blocked.mp4'],
-    ['Around the box', ['The robot goes around the box another way.', 'Then it finishes the trip.'], 'instr_5_finish.mp4'],
-    ['Your trust', ['After each delivery, you say how much you <b>trust</b> the robot.',
-      'You answer from 1 (not at all) to 7 (completely).', 'There are no right or wrong answers.'], 'instr_6_trust.mp4']
-  ];
+    ['Around the box', ['The robot goes around the box another way.', 'Then it finishes the trip.'], 'instr_5_finish.mp4']
+  ];   // (the "Your trust" page was removed with the trust question after each delivery, 2026-11-07)
   for (var i = 0; i < pages.length; i++) {
     setProgress(pageOf('Instructions', i + 1, INSTR_TOTAL), partAt('instr', i / INSTR_TOTAL));
     await videoPage(i + 1, INSTR_TOTAL, pages[i][0], pages[i][1], pages[i][2], 'how_' + (i + 1));
@@ -731,7 +735,7 @@ async function howItWorks() {
     'bubble under the video.</span></li>' +
     '<li><span class="n">3</span><span>You answer a question about the trip, using the buttons under the video. ' +
     'The next pages show this question for your robot.</span></li>' +
-    '<li><span class="n">4</span><span>You say how much you trust the robot (1 to 7).</span></li></ul>' +
+    '<li><span class="n">4</span><span>After all 3 deliveries, you answer a few questions about the robot.</span></li></ul>' +
     '<p class="hint">During the deliveries, a clock at the top of the screen shows how long you have to answer. ' +
     'Please answer before it runs out.</p>', null, 'your_job');
 }
@@ -752,7 +756,7 @@ function modeClip(robot, autonomy) {
 }
 
 // Instructions for this robot's autonomy level only (participants never read about the other level).
-// For the first robot these are pages 8-10 of the instructions; a second robot (within design) gets its own 3 pages.
+// For the first robot these are pages 7-9 of the instructions; a second robot (within design) gets its own 3 pages.
 async function meetRobot(block, robot, autonomy) {
   var first = block === 1;
   var base = first ? INSTR_GENERAL : 0, total = first ? INSTR_TOTAL : INSTR_ROBOT;
@@ -782,11 +786,11 @@ async function meetRobot(block, robot, autonomy) {
        'Watch ' + robot.name + ' drive. When the way is blocked, ' + robot.name + ' suggests a room and two buttons appear under the video.',
        'Click <b>Confirm</b> to accept the suggestion, or <b>Choose Room … instead</b> to send ' + robot.name +
        ' to the other room. ' + robot.name + ' then drives to the room you picked.',
-       'Say how much you trust ' + robot.name + '.']
+       'After all 3 deliveries, you answer a few questions about ' + robot.name + '.']
     : ['Look at the delivery card and remember the room.',
        'Watch ' + robot.name + ' drive. When the way is blocked, ' + robot.name + ' picks a room by itself and finishes the trip.',
        'After the trip, answer “Did ' + robot.name + ' go to the right room?” with <b>Yes</b> or <b>No</b>.',
-       'Say how much you trust ' + robot.name + '.'];
+       'After all 3 deliveries, you answer a few questions about ' + robot.name + '.'];
   await textPage(instrBanner(base + 3, total) + '<h2>What you will see and do</h2>' +
     '<div class="instr-split"><figure class="instr-shot"><img src="' + IMG_DIR + 'instr_' + robot.name.toLowerCase() + '_' +
     autonomy + '.jpg" alt="Example of the delivery screen" onerror="this.parentNode.remove()"></figure>' +
@@ -833,20 +837,6 @@ async function midDetection(robot, page) {
   return {detect_response: btn.dataset.answer, decision_rt_ms: Math.round(performance.now() - t0)};
 }
 
-async function askTrust(robot, page) {
-  var scale = [];
-  for (var i = 1; i <= 7; i++) {
-    scale.push({value: i, label: i + (i === 1 ? '<br><small>Not at all</small>' : i === 7 ? '<br><small>Completely</small>' : '')});
-  }
-  show('<div class="trust-head">' + robotPic(robot, 'mid') + '<h2>How much do you trust ' + robot.name + ' right now?</h2></div>' +
-       '<div class="q scale7">' + radioRow('trust', scale) + '</div>' +
-       '<p id="form-msg" class="err"></p><div class="actions"><button class="btn big" id="trust-next">Next</button></div>');
-  var t0 = performance.now();
-  countdown(20, page);
-  var d = await submitWhenComplete(['trust'], '#trust-next');
-  return {trust: parseInt(d.trust, 10), trust_rt_ms: Math.round(performance.now() - t0)};
-}
-
 async function runTrial(block, robot, autonomy, t, k) {
   var outcome = PATTERN[k];
   var info = t.clips[outcome];
@@ -881,19 +871,25 @@ async function runTrial(block, robot, autonomy, t, k) {
     rec.detect_correct = (m.detect_response === 'yes') === rec.robot_correct;
     rec.missed_error = !rec.robot_correct && m.detect_response === 'yes';
   }
-  Object.assign(rec, await askTrust(robot, 'trust_' + robot.name + '_' + (k + 1)));
+  // Situational awareness (Dr. Roy, 2026-11-07): the answer after each delivery shows whether the participant
+  // followed what happened. Correct = they judged Nova's room right: low autonomy, they confirmed a right room or
+  // changed a wrong one (same as final_correct); mid autonomy, their Yes/No matched whether Nova was right.
+  rec.sa_correct = autonomy === 'low' ? rec.final_correct : rec.detect_correct;
   record(rec);
   save();
+  return rec;
 }
 
-// Questionnaire about the robot: MDMT on 3 pages, then reliance, then the manipulation checks.
+// Questionnaire about the robot, after all 3 deliveries: MDMT Capacity Trust (Reliable + Capable items, with the
+// attention check) on 2 pages, then reliance, then the manipulation checks (Dr. Roy, 2026-11-07: trust is measured
+// here only; no trust question after each delivery).
 async function postBlock(block, robot, autonomy) {
   var t0 = performance.now(), data = {};
   var scale = [];
   for (var i = 0; i <= 7; i++) scale.push({value: i, label: i + (i === 0 ? '<br><small>Not at all</small>' : i === 7 ? '<br><small>Very</small>' : '')});
   scale.push({value: 'NA', label: 'Does not fit'});
-  var head = function (n) { return '<div class="eyebrow">About ' + robot.name + ' · ' + n + ' of 5</div>'; };
-  var qLabel = function (n) { return pageOf(NBLOCKS === 2 ? 'Questionnaire about Robot ' + block : 'Questionnaire', n, 5); };
+  var head = function (n) { return '<div class="eyebrow">About ' + robot.name + ' · ' + n + ' of 4</div>'; };
+  var qLabel = function (n) { return pageOf(NBLOCKS === 2 ? 'Questionnaire about Robot ' + block : 'Questionnaire', n, 4); };
   // answers kept per page under the same keys as the summary below (b1_mdmt_reliable, b1_reliance, ...)
   var keep = function (d) { saveQuestions(d, 'b' + block + '_'); };
   var keepMdmt = function (d) {
@@ -901,22 +897,22 @@ async function postBlock(block, robot, autonomy) {
     Object.keys(d).forEach(function (k) { o[k.indexOf('mdmt_') === 0 ? k : 'mdmt_' + k] = d[k]; });
     keep(o);
   };
-  var cuts = [[0, 6], [6, 12], [12, MDMT_ITEMS.length]];
+  var cuts = [[0, 5], [5, MDMT_CAPACITY.length]];
   for (var p = 0; p < cuts.length; p++) {
-    setProgress(qLabel(p + 1), blockAt(block, 0.76 + p * 0.05));
-    var items = MDMT_ITEMS.slice(cuts[p][0], cuts[p][1]).map(function (it) { return {id: it.id, text: it.text, hint: it.hint}; });
+    setProgress(qLabel(p + 1), blockAt(block, 0.76 + p * 0.06));
+    var items = MDMT_CAPACITY.slice(cuts[p][0], cuts[p][1]).map(function (it) { return {id: it.id, text: it.text, hint: it.hint}; });
     Object.assign(data, await formPage(head(p + 1) + '<h2>How well does each word describe ' + robot.name + '?</h2>' +
       '<p class="lead tight">0 = not at all, 7 = very much. If a word does not make sense for a robot, pick "Does not fit".</p>' +
       '<div class="matrix-wrap">' + matrix(items, scale, 'mdmt') + '</div>',
       items.map(function (it) { return it.id; }), 120, 'mdmt_' + block + '_' + (p + 1), keepMdmt));
   }
-  setProgress(qLabel(4), blockAt(block, 0.91));
-  Object.assign(data, await formPage(head(4) + '<h2>Next time</h2>' +
+  setProgress(qLabel(3), blockAt(block, 0.9));
+  Object.assign(data, await formPage(head(3) + '<h2>Next time</h2>' +
     '<div class="q"><p><b>Would you let ' + robot.name + ' make the next delivery on its own, with nobody watching?</b></p>' +
     radioRow('reliance', [{value: 'yes', label: 'Yes'}, {value: 'no', label: 'No'}]) + '</div>',
     ['reliance'], 45, 'reliance_' + block, keep));
-  setProgress(qLabel(5), blockAt(block, 0.96));
-  Object.assign(data, await formPage(head(5) + '<h2>Two last questions about ' + robot.name + '</h2>' +
+  setProgress(qLabel(4), blockAt(block, 0.96));
+  Object.assign(data, await formPage(head(4) + '<h2>Two last questions about ' + robot.name + '</h2>' +
     '<div class="q scale7"><p><b>How often was ' + robot.name + ' right?</b></p>' + radioRow('mc_correct', seven('Never', 'Always')) + '</div>' +
     '<div class="q scale7"><p><b>How much did ' + robot.name + ' decide by itself?</b></p>' + radioRow('mc_autonomy', seven('Not at all', 'Completely')) + '</div>',
     ['mc_correct', 'mc_autonomy'], 60, 'checks_' + block, keep));
@@ -924,8 +920,18 @@ async function postBlock(block, robot, autonomy) {
   attention['block' + block] = pass;
   var out = {robot: robot.name, autonomy: autonomy, reliance: data.reliance, mc_correct: data.mc_correct,
              mc_autonomy: data.mc_autonomy, attention_pass: pass, rt_ms: Math.round(performance.now() - t0)};
-  MDMT_ITEMS.forEach(function (it) { out[it.id.indexOf('mdmt_') === 0 ? it.id : 'mdmt_' + it.id] = data[it.id]; });
-  saveQuestions(out, 'b' + block + '_');   // e.g. b1_mdmt_reliable, b1_reliance
+  MDMT_CAPACITY.forEach(function (it) { out[it.id.indexOf('mdmt_') === 0 ? it.id : 'mdmt_' + it.id] = data[it.id]; });
+  // Capacity Trust score: mean of the 8 items (0-7), "Does not fit" left out (MDMT scoring); also its two parts
+  var mean = function (sub) {
+    var v = MDMT_CAPACITY.filter(function (it) { return !it.attention && (!sub || it.sub === sub); })
+      .map(function (it) { return data[it.id]; }).filter(function (x) { return x !== 'NA'; }).map(Number);
+    return v.length ? Math.round(1000 * v.reduce(function (a, b) { return a + b; }, 0) / v.length) / 1000 : null;
+  };
+  out.capacity_trust = mean();
+  out.capacity_reliable = mean('Reliable');
+  out.capacity_capable = mean('Capable');
+  out.capacity_na_count = MDMT_CAPACITY.filter(function (it) { return !it.attention && data[it.id] === 'NA'; }).length;
+  saveQuestions(out, 'b' + block + '_');   // e.g. b1_mdmt_reliable, b1_capacity_trust, b1_reliance
   save();
 }
 
@@ -934,7 +940,10 @@ async function runBlock(block) {
   var autonomy = ORDER[block - 1];
   record({phase: 'block_start', block: block, robot: robot.name, autonomy: autonomy});
   await meetRobot(block, robot, autonomy);
-  for (var k = 0; k < 3; k++) await runTrial(block, robot, autonomy, robot.trials[k], k);
+  var sa = 0;
+  for (var k = 0; k < 3; k++) if ((await runTrial(block, robot, autonomy, robot.trials[k], k)).sa_correct) sa++;
+  // situational awareness over the 3 deliveries (number and share of deliveries judged correctly)
+  saveQuestions({sa_correct: sa, sa_accuracy: Math.round(1000 * sa / 3) / 1000}, 'b' + block + '_');
   await postBlock(block, robot, autonomy);
 }
 

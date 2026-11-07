@@ -25,3 +25,8 @@ var MDMT_ITEMS = [
   {id: 'authentic',   sub: 'Sincere',  text: 'Authentic', hint: 'true to itself'},
   {id: 'integrity',   sub: 'Ethical',  text: 'Has integrity', hint: 'honest and fair'}
 ];
+
+// Capacity Trust subscale (Dr. Roy, 2026-11-07: trust is measured once, after the 3 deliveries, with this subscale
+// only). MDMT Capacity trust = Reliable + Capable items (called Performance trust in MDMT v1; MDMT v2 names the
+// Capable dimension "Competent", with the same items). Item order as in MDMT_ITEMS; the attention check stays in.
+var MDMT_CAPACITY = MDMT_ITEMS.filter(function (it) { return it.attention || it.sub === 'Reliable' || it.sub === 'Capable'; });

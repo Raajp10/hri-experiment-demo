@@ -28,4 +28,10 @@ Participant link: https://raajp10.github.io/hri-experiment-demo/ (starts on the 
 - The study switches the browser to full screen at the participant's first click ("Full screen" button in the
   header to switch it off/on). Instruction pages show short points beside a large video. "How Nova works" uses
   `instr_mode_*_nova.mp4`: the mode clips with the robot's top painted Nova blue (`scripts/make_nova_mode_clips.py`).
+- Measures (Dr. Roy, 2026-11-07; questiondata `measures_version` = v4-2026-11-07): no trust question after each
+  delivery. The answer after each delivery is situational-awareness data: trialdata `sa_correct` (low autonomy:
+  confirmed a right room or changed a wrong one; mid: Yes/No matched whether Nova was right), per participant
+  `b1_sa_correct` (0-3) and `b1_sa_accuracy`. Trust is measured once after the 3 deliveries with the MDMT Capacity
+  Trust subscale (Reliable + Capable items, 0-7, "Does not fit" left out): `b1_mdmt_*`, `b1_capacity_trust`,
+  `b1_capacity_reliable`, `b1_capacity_capable`.
 - Earlier versions: git tags `v1-first-demo`, `v2-after-review`.

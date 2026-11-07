@@ -23,7 +23,9 @@ var DemoData = (function () {
           (t.missed_error ? ' <span class="bad">(missed the error)</span>' : (t.detect_correct ? ' <span class="ok">(correct judgement)</span>' : ''));
       what = '<b>' + t.robot + '</b> · ' + t.autonomy + ' autonomy · delivery ' + t.trial + ' · target Room ' + t.target +
              ' → robot went/suggested Room ' + t.robot_room + ' ' + ok + '<br>' + ans + ' · decision ' + t.decision_rt_ms +
-             ' ms · trust <b>' + t.trust + '</b>/7 · clip <code>' + esc(t.clip) + '</code>';
+             ' ms · ' + ('trust' in t ? 'trust <b>' + t.trust + '</b>/7' :
+               'situational awareness: ' + (t.sa_correct ? '<span class="ok">correct</span>' : '<span class="bad">wrong</span>')) +
+             ' · clip <code>' + esc(t.clip) + '</code>';
     } else if (ph === 'block_start') {
       what = 'Robot ' + t.block + ': <b>' + t.robot + '</b>, ' + t.autonomy + ' autonomy';
     } else if (ph === 'instructions') {
@@ -44,7 +46,7 @@ var DemoData = (function () {
 
   // questiondata keys, grouped for reading
   function section(k) {
-    if (/^(age|gender|gender_self|psiturk_before|robots_before|education|education_other|robot_experience|mobile_robot_experience|game_frequency|demographics_rt_ms|onboarding_version)$/.test(k)) return 'Demographics (before the experiment)';
+    if (/^(age|gender|gender_self|psiturk_before|robots_before|education|education_other|robot_experience|mobile_robot_experience|game_frequency|demographics_rt_ms|onboarding_version|measures_version)$/.test(k)) return 'Demographics (before the experiment)';
     if (/^av_check/.test(k)) return 'Audio/video check (before the experiment)';
     if (/^nars/.test(k)) return 'Attitudes toward robots, NARS (older sessions only)';
     if (/^b1_/.test(k)) return 'Questionnaire about the robot';
